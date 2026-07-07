@@ -327,6 +327,7 @@ button{font-family:inherit;cursor:pointer;}
       <button class="mini-btn" id="flipBtn">📷 카메라 전환</button>
       <button class="mini-btn" id="fsBtn">⛶ 전체화면</button>
       <button class="mini-btn" id="calBtn">👁 기준선 켜짐</button>
+      <button class="mini-btn" id="recalBtn">🔄 기준 재설정</button>
     </div>
   </div>
 </div>
@@ -344,6 +345,9 @@ const JUMP_HYSTERESIS = 0.40;  // 착지 인정선 = UP × 이 비율 (0.4면 UP
 const JUMP_MIN_GAP_MS = 190;   // 연속 점프 최소 간격(ms). 2단뛰기처럼 빠르면 150으로 낮추기
 const STREAK_TIMEOUT_MS = 1500;// 연속 모드에서 이 시간 동안 안 뛰면 스트릭 종료
 const HIP_SMOOTH = 0.6;        // 엉덩이 높이 스무딩(0~1). 클수록 반응 빠름/떨림, 작을수록 부드럽/느림
+const BASELINE_CALIB_FRAMES = 15; // 기준선(서있는 엉덩이 높이) 잡을 때 평균낼 프레임 수(약 0.5~0.8초)
+const BASELINE_DRIFT_DOWN = 0.10; // 서 있는 동안 기준선이 아래로 보정되는 속도
+const BASELINE_DRIFT_UP   = 0.04; // 서 있는 동안 기준선이 위로 보정되는 속도(아래보다 느리게, 점프에 안 딸려가게)
 // 감도 슬라이더(0~100)를 JUMP_UP_RATIO로 매핑: 100=아주 민감(0.06) ↔ 0=엄격(0.18)
 function sliderToRatio(v){ return 0.18 - (v/100)*(0.18-0.06); }
 
@@ -389,6 +393,8 @@ let showCalib=true;
 // 점프 감지 상태
 let jumpCount=0, jumpHipY=null, jumpBaselineY=null, jumpState='ground', jumpLastT=0;
 let curTorso=null, curRiseNorm=0, personVisible=false;
+let jumpBaselineSamples=[]; // 기준선 잡는 중 모으는 프레임들
+let calibratingBaseline=false;
 
 /* ============================================================
    오디오 (Web Audio API)
@@ -451,9 +457,26 @@ function detectJump(hipY, torso){
   curTorso=torso;
   // 반응성 위해 가벼운 스무딩
   jumpHipY = (jumpHipY==null) ? hipY : jumpHipY*(1-HIP_SMOOTH) + hipY*HIP_SMOOTH;
-  if(jumpBaselineY==null){ jumpBaselineY=jumpHipY; return; }
-  // 서 있는 기준선: 몸이 더 아래(값이 큼)면 baseline을 천천히 따라감
-  if(jumpHipY > jumpBaselineY){ jumpBaselineY = jumpBaselineY*0.9 + jumpHipY*0.1; }
+
+  // ── 기준선(서 있는 엉덩이 높이) 최초 캘리브레이션: 한 프레임 스냅샷 대신 여러 프레임 평균 ──
+  if(jumpBaselineY==null){
+    calibratingBaseline=true;
+    jumpBaselineSamples.push(jumpHipY);
+    if(!running) setGuide('⚖️ 기준 잡는 중… 가만히 서주세요');
+    if(jumpBaselineSamples.length>=BASELINE_CALIB_FRAMES){
+      const sum=jumpBaselineSamples.reduce((a,b)=>a+b,0);
+      jumpBaselineY=sum/jumpBaselineSamples.length;
+      jumpBaselineSamples=[];
+      calibratingBaseline=false;
+      if(!running) setGuide('');
+    }
+    return;
+  }
+  // 서 있는 상태(ground)에서만 기준선을 양방향으로 천천히 보정 (점프 중엔 안 딸려가게)
+  if(jumpState==='ground'){
+    if(jumpHipY > jumpBaselineY){ jumpBaselineY = jumpBaselineY*(1-BASELINE_DRIFT_DOWN) + jumpHipY*BASELINE_DRIFT_DOWN; }
+    else { jumpBaselineY = jumpBaselineY*(1-BASELINE_DRIFT_UP) + jumpHipY*BASELINE_DRIFT_UP; }
+  }
   const riseNorm=(jumpBaselineY - jumpHipY)/torso; // >0 이면 baseline보다 위로 뜬 상태
   curRiseNorm=Math.max(0,riseNorm);
   const UP=JUMP_UP_RATIO, DOWN=JUMP_UP_RATIO*JUMP_HYSTERESIS;
@@ -497,6 +520,7 @@ window.setMode=(mode)=>{
 
 function resetCount(){
   jumpCount=0; jumpHipY=null; jumpBaselineY=null; jumpState='ground'; jumpLastT=0; curRiseNorm=0;
+  jumpBaselineSamples=[]; calibratingBaseline=false;
   countNum.textContent='0'; statNow.textContent='0'; statState.textContent=running?'측정중':'준비';
 }
 function updateStats(){
@@ -698,6 +722,11 @@ document.getElementById('fsBtn').onclick=()=>{
 };
 document.getElementById('calBtn').onclick=(e)=>{
   showCalib=!showCalib; e.target.textContent=showCalib?'👁 기준선 켜짐':'👁 기준선 꺼짐';
+};
+document.getElementById('recalBtn').onclick=()=>{
+  // 다음 아이/자세가 바뀌었을 때 기준선을 즉시 새로 잡도록 강제 리셋
+  jumpHipY=null; jumpBaselineY=null; jumpBaselineSamples=[]; calibratingBaseline=false;
+  setGuide('⚖️ 기준 다시 잡는 중… 가만히 서주세요');
 };
 sensSlider.oninput=()=>{
   JUMP_UP_RATIO=sliderToRatio(parseInt(sensSlider.value));
