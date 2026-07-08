@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
 <title>점프마스터 · 나른랩스</title>
 <!--
-  aijumpmaster.html  (나른랩스 · AI 점프마스터 베타)
+  jumpmaster.html  (나른랩스 · 점프마스터 v0.1)
   ─────────────────────────────────────────────
   · 킥마스터와 같은 UI 언어(네이비 배경 + 청록/라임 액센트, Noto Sans KR)를 쓰되,
     킥마스터 실제 화면 레이아웃(좌상단 브랜드 스택, 중앙 상단 히어로 타이틀+안내 캡슐,
@@ -228,43 +228,271 @@ button{font-family:inherit;cursor:pointer;}
   .confetti-piece{animation-duration:.01s;}
 }
 
-/* 스피드모드 대형 타이머 / 판정 피드백 */
-#speedClock{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:5;
-  pointer-events:none;text-align:center;filter:drop-shadow(0 6px 24px rgba(0,0,0,.65));}
-#speedClock .clock-num{font-size:clamp(78px,18vw,180px);font-weight:900;line-height:.9;color:#fff;
-  font-variant-numeric:tabular-nums;text-shadow:0 0 34px rgba(20,184,166,.45);}
-#speedClock .clock-label{font-size:clamp(13px,2.4vw,22px);font-weight:900;color:var(--lime);letter-spacing:.12em;margin-top:12px;}
-#speedClock.warning .clock-num{color:var(--lime-bright);animation:clockPulse .5s ease-out infinite alternate;}
-#speedClock.final .clock-num{color:#ff7a90;text-shadow:0 0 34px rgba(255,122,144,.5);}
-@keyframes clockPulse{from{transform:scale(1);}to{transform:scale(1.08);}}
-#jumpFeedback{position:absolute;left:50%;top:calc(50% + 118px);transform:translateX(-50%);z-index:7;
-  font-size:clamp(22px,5vw,44px);font-weight:900;color:var(--lime-bright);opacity:0;
-  text-shadow:0 0 24px rgba(163,230,53,.55);pointer-events:none;}
-#jumpFeedback.show{animation:feedbackPop .32s ease-out;}
-@keyframes feedbackPop{0%{opacity:0;transform:translateX(-50%) translateY(18px) scale(.84);}35%{opacity:1;transform:translateX(-50%) translateY(0) scale(1.08);}100%{opacity:0;transform:translateX(-50%) translateY(-20px) scale(1);}}
 
+/* ============================================================
+   UI SYNC PATCH 2026-07-08
+   킥마스터 HUD 방향에 맞춘 점프마스터 UI 정리
+   - 기능 JS 변경 없음
+   - 팀 컬러(청록/라임) 유지
+   - 버튼 테두리 제거, 플레인 텍스트/밑줄 중심
+   - 좌상단 정품 인증 영역을 킥마스터식 브랜드 스택으로 정리
+   ============================================================ */
+:root{
+  --jm-glow:rgba(45,212,191,.72);
+  --jm-glow-soft:rgba(45,212,191,.26);
+  --jm-shadow:0 3px 14px rgba(0,0,0,.86);
+}
 
-/* 릴레이 / 게임 모드 UI */
-.mode-settings{display:none;flex-direction:column;gap:6px;background:var(--panel);border:1px solid var(--panel-line);border-radius:11px;padding:8px 12px;backdrop-filter:blur(6px);}
-.mode-settings.show{display:flex;}
-.mode-settings label{font-size:10px;color:var(--muted);font-weight:700;}
-.mode-settings select{background:var(--navy-800);color:#fff;border:1px solid var(--panel-line);border-radius:8px;padding:6px 8px;font-size:13px;font-weight:800;font-family:inherit;}
-.relay-board{position:absolute;left:50%;top:calc(50% + 170px);transform:translateX(-50%);z-index:6;display:none;gap:8px;align-items:center;justify-content:center;pointer-events:none;}
-.relay-board.show{display:flex;}
-.relay-chip{min-width:56px;padding:8px 10px;border-radius:12px;background:rgba(5,14,26,.58);border:1px solid var(--panel-line);text-align:center;font-weight:900;color:#fff;}
-.relay-chip.active{background:rgba(163,230,53,.18);border-color:var(--lime);color:var(--lime-bright);box-shadow:0 0 18px rgba(163,230,53,.22);}
-.relay-chip small{display:block;font-size:9px;color:var(--muted);font-weight:700;margin-top:2px;}
-#gameBoard{position:absolute;inset:0;display:none;z-index:4;pointer-events:none;overflow:hidden;}
-#gameBoard.show{display:block;}
-#gameLane{position:absolute;left:50%;top:calc(env(safe-area-inset-top) + 118px);bottom:calc(env(safe-area-inset-bottom) + 118px);width:min(210px,34vw);transform:translateX(-50%);border-left:2px solid rgba(45,212,191,.28);border-right:2px solid rgba(45,212,191,.28);background:linear-gradient(180deg,rgba(20,184,166,.05),rgba(163,230,53,.06));border-radius:24px;}
-#judgeLine{position:absolute;left:calc(50% - min(120px,19vw));right:calc(50% - min(120px,19vw));bottom:24%;height:5px;border-radius:999px;background:linear-gradient(90deg,var(--lime),var(--teal-bright));box-shadow:0 0 26px rgba(163,230,53,.5);}
-.game-note{position:absolute;left:50%;top:-40px;width:54px;height:54px;margin-left:-27px;border-radius:50%;background:radial-gradient(circle at 35% 30%,var(--lime-bright),var(--teal));box-shadow:0 0 24px rgba(163,230,53,.55);animation:noteDrop linear forwards;}
-@keyframes noteDrop{to{top:76%;}}
-.game-hud{position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom) + 42px);transform:translateX(-50%);display:none;gap:10px;z-index:7;pointer-events:none;}
-.game-hud.show{display:flex;}
-.game-pill{padding:8px 13px;border-radius:999px;background:rgba(5,14,26,.62);border:1px solid var(--panel-line);font-size:12px;font-weight:900;color:#fff;}
-.game-pill b{color:var(--lime-bright);}
+/* 카메라 오버레이: 킥마스터처럼 중앙은 살리고 외곽만 은은하게 */
+#camWrap::after{
+  background:
+    radial-gradient(ellipse at center,
+      rgba(5,12,22,0.00) 0%,
+      rgba(5,12,22,0.02) 44%,
+      rgba(5,12,22,0.08) 68%,
+      rgba(5,12,22,0.20) 100%),
+    linear-gradient(180deg,
+      rgba(5,12,22,.30) 0%,
+      rgba(5,12,22,.10) 20%,
+      rgba(5,12,22,0.00) 46%,
+      rgba(5,12,22,.08) 74%,
+      rgba(5,12,22,.46) 100%) !important;
+}
+
+/* 좌상단 인증/브랜드: 박스 없이 정보만 선명하게 */
+.top-bar{padding:0 18px !important;}
+.brand-stack{
+  gap:2px !important;
+  filter:drop-shadow(0 3px 10px rgba(0,0,0,.78)) !important;
+}
+.bs-name{
+  font-size:18px !important;
+  font-weight:1000 !important;
+  color:#fff !important;
+  letter-spacing:-.04em !important;
+  line-height:1.05 !important;
+}
+.bs-tag{
+  display:inline-flex !important;
+  width:max-content !important;
+  gap:6px !important;
+  font-size:10px !important;
+  font-weight:900 !important;
+  letter-spacing:.08em !important;
+  color:var(--lime-bright) !important;
+  text-shadow:0 0 10px rgba(163,230,53,.42) !important;
+}
+.bs-dot{
+  width:7px !important;
+  height:7px !important;
+  background:var(--lime) !important;
+  box-shadow:0 0 10px rgba(163,230,53,.85) !important;
+}
+.bs-meta{
+  font-size:9.5px !important;
+  font-weight:700 !important;
+  color:rgba(234,244,241,.48) !important;
+}
+
+/* 중앙 타이틀: 킥마스터처럼 더 또렷하게 */
+#modeBadge{top:calc(env(safe-area-inset-top) + 14px) !important;}
+.mb-title{
+  font-size:clamp(24px,5.8vw,36px) !important;
+  font-weight:1000 !important;
+  text-shadow:none !important;
+  filter:drop-shadow(0 3px 14px rgba(0,0,0,.72)) !important;
+}
+.mb-sub{
+  font-size:12px !important;
+  font-weight:800 !important;
+  color:rgba(234,244,241,.68) !important;
+  text-shadow:0 2px 8px rgba(0,0,0,.80) !important;
+}
+#guideMsg{
+  background:rgba(5,12,22,.46) !important;
+  border:none !important;
+  box-shadow:0 8px 24px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.08) !important;
+  color:rgba(234,244,241,.92) !important;
+}
+
+/* 좌측 모드 레일: 버튼 박스/테두리 제거, 선택만 라임 밑줄 */
+.mode-rail{
+  left:18px !important;
+  top:calc(env(safe-area-inset-top) + 142px) !important;
+  width:132px !important;
+  gap:12px !important;
+}
+.mode-btn{
+  background:transparent !important;
+  border:none !important;
+  border-radius:0 !important;
+  box-shadow:none !important;
+  backdrop-filter:none !important;
+  padding:3px 2px 5px 0 !important;
+  color:rgba(255,255,255,.58) !important;
+  font-size:14px !important;
+  font-weight:1000 !important;
+  text-align:left !important;
+  text-shadow:var(--jm-shadow) !important;
+  position:relative !important;
+}
+.mode-btn small{
+  display:block !important;
+  font-size:10px !important;
+  font-weight:800 !important;
+  color:rgba(234,244,241,.42) !important;
+  margin-top:2px !important;
+}
+.mode-btn.active{
+  color:#fff !important;
+  background:transparent !important;
+  border:none !important;
+  text-shadow:0 2px 10px rgba(0,0,0,.9), 0 0 14px var(--jm-glow) !important;
+}
+.mode-btn.active small{color:var(--lime-bright) !important;}
+.mode-btn.active::after{
+  content:"" !important;
+  position:absolute !important;
+  left:0 !important;
+  bottom:-3px !important;
+  width:44px !important;
+  height:3px !important;
+  border-radius:999px !important;
+  background:var(--teal-bright) !important;
+  box-shadow:0 0 12px var(--jm-glow) !important;
+}
+
+/* 우측 스탯: 패널감 제거, 숫자 위주 */
+.stat-rail{
+  right:18px !important;
+  top:calc(env(safe-area-inset-top) + 118px) !important;
+  gap:18px !important;
+}
+.stat-block{filter:drop-shadow(0 3px 10px rgba(0,0,0,.74)) !important;}
+.sb-label{
+  color:rgba(234,244,241,.60) !important;
+  font-size:10px !important;
+  font-weight:900 !important;
+}
+.sb-value{
+  font-weight:1000 !important;
+  color:#fff !important;
+  text-shadow:0 3px 16px rgba(0,0,0,.90) !important;
+}
+.sb-value.lime{
+  color:var(--lime-bright) !important;
+  text-shadow:0 0 22px rgba(163,230,53,.46),0 3px 16px rgba(0,0,0,.88) !important;
+}
+.sb-state{font-weight:900 !important;color:var(--teal-bright) !important;}
+.gauge{
+  border:none !important;
+  background:rgba(5,14,26,.45) !important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 8px 18px rgba(0,0,0,.28) !important;
+}
+.gauge-tick{background:rgba(255,255,255,.45) !important;}
+
+/* 좌하단 설정/시작: 선택 영역 테두리 제거, 시작은 킥마스터처럼 텍스트 강조 */
+.bottom-left{
+  left:18px !important;
+  bottom:calc(env(safe-area-inset-bottom) + 16px) !important;
+  width:min(235px,56vw) !important;
+  gap:6px !important;
+}
+.time-select,
+.sens-box{
+  background:transparent !important;
+  border:none !important;
+  border-radius:0 !important;
+  box-shadow:none !important;
+  backdrop-filter:none !important;
+  padding:0 !important;
+}
+.time-select label,
+.sens-box label{
+  font-size:10px !important;
+  font-weight:900 !important;
+  color:rgba(234,244,241,.54) !important;
+  text-shadow:0 2px 8px rgba(0,0,0,.82) !important;
+}
+.time-select select{
+  height:32px !important;
+  background:rgba(5,14,26,.56) !important;
+  border:none !important;
+  border-radius:10px !important;
+  color:#fff !important;
+  box-shadow:0 8px 18px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.08) !important;
+}
+.sens-box .sens-row{gap:7px !important;}
+.sens-box input[type=range]{accent-color:var(--teal-bright) !important;}
+.sens-box .sv{
+  color:var(--lime-bright) !important;
+  text-shadow:0 2px 8px rgba(0,0,0,.75) !important;
+}
+.start-cta{
+  width:auto !important;
+  padding:8px 0 0 0 !important;
+  margin-top:4px !important;
+  background:transparent !important;
+  border:none !important;
+  border-radius:0 !important;
+  box-shadow:none !important;
+  color:var(--lime-bright) !important;
+  font-size:34px !important;
+  line-height:1.05 !important;
+  font-weight:1000 !important;
+  letter-spacing:-1.2px !important;
+  text-align:left !important;
+  text-shadow:0 3px 12px rgba(0,0,0,.86),0 0 16px rgba(163,230,53,.32) !important;
+}
+.start-cta.playing{
+  background:transparent !important;
+  color:var(--danger) !important;
+  box-shadow:none !important;
+  text-shadow:0 3px 12px rgba(0,0,0,.86) !important;
+}
+
+/* 우하단 보조 버튼: 테두리 제거, 작은 텍스트 버튼 */
+.bottom-right{
+  right:18px !important;
+  bottom:calc(env(safe-area-inset-bottom) + 16px) !important;
+  gap:6px !important;
+}
+.mini-btn{
+  background:transparent !important;
+  border:none !important;
+  border-radius:0 !important;
+  box-shadow:none !important;
+  backdrop-filter:none !important;
+  padding:3px 0 !important;
+  color:rgba(255,255,255,.62) !important;
+  font-size:12px !important;
+  font-weight:900 !important;
+  text-align:right !important;
+  text-shadow:0 3px 10px rgba(0,0,0,.86) !important;
+}
+.mini-btn:active,.mode-btn:active,.start-cta:active{transform:scale(.97) !important;}
+
+/* 타이머/결과/카운트다운은 팀 컬러 유지하며 살짝 정리 */
+#timerBadge{
+  background:rgba(5,14,26,.46) !important;
+  border:none !important;
+  box-shadow:0 8px 22px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.08) !important;
+}
+#timerNum{color:var(--lime-bright) !important;}
+#readyOverlay{background:rgba(5,12,22,.46) !important;}
+#resultOverlay{background:rgba(5,12,22,.62) !important;}
+.result-again{
+  border:none !important;
+  background:linear-gradient(120deg,var(--lime),var(--teal-bright)) !important;
+  box-shadow:0 10px 28px rgba(20,184,166,.28) !important;
+}
+
+@media (max-width:420px){
+  .mode-rail{width:108px !important;top:calc(env(safe-area-inset-top) + 136px) !important;}
+  .mode-btn{font-size:12px !important;}
+  .stat-rail{top:calc(env(safe-area-inset-top) + 132px) !important;gap:14px !important;}
+  .start-cta{font-size:29px !important;}
+}
 
 </style>
 </head>
@@ -280,8 +508,6 @@ button{font-family:inherit;cursor:pointer;}
   <div class="start-note">카메라 사용 권한을 허용해 주세요 · 나른랩스 점프마스터 v0.1</div>
 </div>
 
-<audio id="speedAudio" preload="auto" src="assets/speed_30sec.mp3"></audio>
-
 <!-- ─────────── 앱 화면 (킥마스터 레이아웃으로 재구성) ─────────── -->
 <div id="app">
   <div id="camWrap" class="mirrored">
@@ -295,8 +521,8 @@ button{font-family:inherit;cursor:pointer;}
     <div class="top-bar">
       <div class="brand-stack">
         <div class="bs-name">점프마스터</div>
-        <div class="bs-tag"><span class="bs-dot"></span>NAREUN LABS</div>
-        <div class="bs-meta">v0.1 · Powered by Google MediaPipe</div>
+        <div class="bs-tag"><span class="bs-dot"></span>정품 인증됨</div>
+        <div class="bs-meta">나른랩스 · v0.1 · Google MediaPipe</div>
       </div>
       <div id="timerBadge"><div id="timerNum">30</div><div id="timerLabel">남은 시간</div></div>
     </div>
@@ -304,11 +530,6 @@ button{font-family:inherit;cursor:pointer;}
     <!-- 중앙 상단 히어로: 모드명 타이틀 + 안내 캡슐 -->
     <div id="modeBadge"><span class="mb-title">자유 모드</span><span class="mb-sub">멈출 때까지 계속 카운트</span></div>
     <div id="guideMsg" class="show">🔍 전신이 보이게 뒤로 물러서세요</div>
-    <div id="speedClock"><div class="clock-num" id="speedClockNum">30</div><div class="clock-label" id="speedClockLabel">SPEED MODE</div></div>
-    <div id="jumpFeedback">PERFECT</div>
-    <div id="gameBoard"><div id="gameLane"></div><div id="judgeLine"></div></div>
-    <div class="relay-board" id="relayBoard"></div>
-    <div class="game-hud" id="gameHud"><div class="game-pill">SCORE <b id="gameScoreText">0</b></div><div class="game-pill">COMBO <b id="gameComboText">0</b></div></div>
 
     <!-- 우측 세로 스탯열: 게이지 / 횟수 / 오늘 최고 -->
     <div class="stat-rail">
@@ -333,9 +554,9 @@ button{font-family:inherit;cursor:pointer;}
 
     <!-- 좌측 모드 레일 -->
     <div class="mode-rail">
-      <button class="mode-btn active" data-mode="speed" onclick="setMode('speed')">스피드<small>30초 대회</small></button>
-      <button class="mode-btn" data-mode="relay" onclick="setMode('relay')">릴레이<small>팀전 30초</small></button>
-      <button class="mode-btn" data-mode="game" onclick="setMode('game')">게임<small>타이밍 점프</small></button>
+      <button class="mode-btn active" data-mode="free" onclick="setMode('free')">자유<small>무제한</small></button>
+      <button class="mode-btn" data-mode="timed" onclick="setMode('timed')">시간제<small>제한시간 도전</small></button>
+      <button class="mode-btn" data-mode="streak" onclick="setMode('streak')">연속<small>안 멈추고!</small></button>
     </div>
 
     <div id="readyOverlay"><div id="readyNum">3</div><div id="readySub"></div></div>
@@ -351,26 +572,11 @@ button{font-family:inherit;cursor:pointer;}
     <!-- 좌하단: 목표 시간 · 감도 · 시작 버튼 -->
     <div class="bottom-left">
       <div class="time-select" id="timeSelect">
-        <label>스피드 모드</label>
+        <label>제한 시간</label>
         <select id="timeSel">
-          <option value="30" selected>30초 대회용</option>
-        </select>
-      </div>
-      <div class="mode-settings" id="relaySettings">
-        <label>릴레이 선수 수</label>
-        <select id="relayPlayerSel">
-          <option value="2">2명</option>
-          <option value="3" selected>3명</option>
-          <option value="4">4명</option>
-          <option value="5">5명</option>
-        </select>
-      </div>
-      <div class="mode-settings" id="gameSettings">
-        <label>게임 난이도</label>
-        <select id="gameLevelSel">
-          <option value="easy">쉬움 · 일정한 타이밍</option>
-          <option value="normal" selected>보통 · 살짝 변동</option>
-          <option value="hard">어려움 · 빠른 변동</option>
+          <option value="30" selected>30초</option>
+          <option value="60">60초</option>
+          <option value="120">120초</option>
         </select>
       </div>
       <div class="sens-box">
@@ -401,16 +607,16 @@ import { PoseLandmarker, FilesetResolver, DrawingUtils }
    ★ 튜닝 구역 — 여기 숫자만 바꾸면 감지 감도가 달라집니다
    ============================================================ */
 // 점프 인식: 엉덩이가 "몸통 길이 대비" 이만큼 올라가야 떴다고 인정 (기본값, 슬라이더가 실시간 덮어씀)
-let JUMP_UP_RATIO = 0.085;      // ↓ 낮출수록 작은 점프도 인식 (아이·저학년), ↑ 높이면 헛동작 무시
+let JUMP_UP_RATIO = 0.11;      // ↓ 낮출수록 작은 점프도 인식 (아이·저학년), ↑ 높이면 헛동작 무시
 const JUMP_HYSTERESIS = 0.40;  // 착지 인정선 = UP × 이 비율 (0.4면 UP의 40%까지 내려와야 1회 완료)
-const JUMP_MIN_GAP_MS = 145;   // 연속 점프 최소 간격(ms). 2단뛰기처럼 빠르면 150으로 낮추기
+const JUMP_MIN_GAP_MS = 190;   // 연속 점프 최소 간격(ms). 2단뛰기처럼 빠르면 150으로 낮추기
 const STREAK_TIMEOUT_MS = 1500;// 연속 모드에서 이 시간 동안 안 뛰면 스트릭 종료
 const HIP_SMOOTH = 0.6;        // 엉덩이 높이 스무딩(0~1). 클수록 반응 빠름/떨림, 작을수록 부드럽/느림
 const BASELINE_CALIB_FRAMES = 15; // 기준선(서있는 엉덩이 높이) 잡을 때 평균낼 프레임 수(약 0.5~0.8초)
 const BASELINE_DRIFT_DOWN = 0.10; // 서 있는 동안 기준선이 아래로 보정되는 속도
 const BASELINE_DRIFT_UP   = 0.04; // 서 있는 동안 기준선이 위로 보정되는 속도(아래보다 느리게, 점프에 안 딸려가게)
 // 감도 슬라이더(0~100)를 JUMP_UP_RATIO로 매핑: 100=아주 민감(0.06) ↔ 0=엄격(0.18)
-function sliderToRatio(v){ return 0.145 - (v/100)*(0.145-0.045); }
+function sliderToRatio(v){ return 0.18 - (v/100)*(0.18-0.06); }
 
 /* ── DOM ── */
 const video=document.getElementById('video');
@@ -437,34 +643,14 @@ const sensVal=document.getElementById('sensVal');
 const statNow=document.getElementById('statNow');
 const statBest=document.getElementById('statBest');
 const statState=document.getElementById('statState');
-const speedAudio=document.getElementById('speedAudio');
-const speedClock=document.getElementById('speedClock');
-const speedClockNum=document.getElementById('speedClockNum');
-const speedClockLabel=document.getElementById('speedClockLabel');
-const jumpFeedback=document.getElementById('jumpFeedback');
-const relaySettings=document.getElementById('relaySettings');
-const relayPlayerSel=document.getElementById('relayPlayerSel');
-const relayBoard=document.getElementById('relayBoard');
-const gameSettings=document.getElementById('gameSettings');
-const gameLevelSel=document.getElementById('gameLevelSel');
-const gameBoard=document.getElementById('gameBoard');
-const gameHud=document.getElementById('gameHud');
-const gameScoreText=document.getElementById('gameScoreText');
-const gameComboText=document.getElementById('gameComboText');
 
 /* ── 모드 정의 ── */
 const MODES={
-  speed: {title:'스피드 모드', sub:'30초 대회용 줄넘기 측정', timed:true},
-  relay: {title:'릴레이 모드', sub:'한 명씩 30초, 총합으로 승부', timed:true},
-  game:  {title:'게임 모드', sub:'화면 타이밍에 맞춰 점프', timed:true},
+  free:   {title:'자유 모드',   sub:'멈출 때까지 계속 카운트', timed:false},
+  timed:  {title:'시간제 모드', sub:'제한 시간 안에 최대한 많이', timed:true},
+  streak: {title:'연속 모드',   sub:'리듬 끊기지 않게 이어서!', timed:false},
 };
-let currentMode='speed';
-const SPEED_AUDIO_START_AT = 2.05; // 사운드의 시작 삐 시점. 여기부터 30초 측정
-const SPEED_DURATION = 30.0;
-let speedClockRaf=null, speedMeasureStarted=false, speedFinished=false;
-let activeTimedRun='speed';
-let relayIndex=0, relayScores=[], relayPlayers=3;
-let gameRaf=null, gameNoteTimer=null, gameEndTimer=null, gameTargets=[], gameScore=0, gameCombo=0, gameHits=0, gameMisses=0;
+let currentMode='free';
 
 /* ── 상태 ── */
 let poseLandmarker=null, drawingUtils=null, lastVideoTime=-1;
@@ -567,219 +753,36 @@ function detectJump(hipY, torso){
     if(riseNorm>UP && (now-jumpLastT)>JUMP_MIN_GAP_MS){ jumpState='air'; statState.textContent='점프!'; }
   } else { // air
     if(riseNorm<DOWN){
-      jumpState='ground';
-      onJumpDetected(now);
+      jumpState='ground'; jumpCount++; jumpLastT=now;
+      onJumpCounted();
     }
   }
-}
-function onJumpDetected(now){
-  jumpLastT=now;
-  if(currentMode==='game' && running){ handleGameJump(now); return; }
-  jumpCount++;
-  onJumpCounted();
 }
 function onJumpCounted(){
   countNum.textContent=jumpCount;
   countNum.classList.remove('pulse'); void countNum.offsetWidth; countNum.classList.add('pulse');
   statNow.textContent=jumpCount; statState.textContent='착지';
   sndHop();
-  showJumpFeedback(jumpCount);
-  if(jumpCount%10===0){ confetti(false); }
+  if(jumpCount%10===0){ sndTen(jumpCount); confetti(false); }
   if(jumpCount%50===0){ confetti(true); }
 }
 
-function showJumpFeedback(n){
-  let text='GOOD';
-  if(n>0 && n%10===0) text='NICE '+n;
-  if(n>=120) text='초고속!';
-  jumpFeedback.textContent=text;
-  jumpFeedback.classList.remove('show'); void jumpFeedback.offsetWidth; jumpFeedback.classList.add('show');
-}
-function stopSpeedClock(){ if(speedClockRaf){ cancelAnimationFrame(speedClockRaf); speedClockRaf=null; } }
-function resetSpeedClock(){
-  stopSpeedClock(); speedMeasureStarted=false; speedFinished=false;
-  speedClockNum.textContent='30'; speedClockLabel.textContent='SPEED MODE';
-  speedClock.classList.remove('warning','final');
-}
-function startSpeedAudioClock(runType='speed'){
-  activeTimedRun=runType;
-  resetCount();
-  speedMeasureStarted=false; speedFinished=false;
-  speedAudio.currentTime=0;
-  speedAudio.play().catch(()=>setGuide('사운드 재생을 시작할 수 없습니다. 다시 눌러주세요.'));
-  setStartCta(true,'⏳ 준비중...'); startCta.disabled=true;
-  const tick=()=>{
-    const t=speedAudio.currentTime || 0;
-    if(t < SPEED_AUDIO_START_AT){
-      speedClockNum.textContent='준비';
-      speedClockLabel.textContent=runType==='relay' ? ('선수 '+(relayIndex+1)+' 준비') : 'START READY';
-    }else{
-      const elapsed=t-SPEED_AUDIO_START_AT;
-      const remain=Math.max(0, SPEED_DURATION-elapsed);
-      if(!speedMeasureStarted){
-        running=true; speedMeasureStarted=true; startCta.disabled=false; setStartCta(true,'■ 종료'); statState.textContent='측정중'; jumpLastT=performance.now();
-      }
-      speedClockNum.textContent=Math.ceil(remain).toString();
-      speedClockLabel.textContent='남은 시간';
-      speedClock.classList.toggle('warning', remain<=10 && remain>5);
-      speedClock.classList.toggle('final', remain<=5);
-      if(remain<=0 && !speedFinished){
-        speedFinished=true; finishSpeedByAudio(); return;
-      }
-    }
-    speedClockRaf=requestAnimationFrame(tick);
-  };
-  speedClockRaf=requestAnimationFrame(tick);
-}
-function finishSpeedByAudio(){
-  stopSpeedClock();
-  running=false; startCta.disabled=false;
-  speedClockNum.textContent='0'; speedClockLabel.textContent='FINISH';
-  if(activeTimedRun==='relay'){ finishRelayRound(); return; }
-  showResult(jumpCount,'30초 스피드 완료!','대회용 30초 측정');
-}
-
-
-
-function renderRelayBoard(){
-  relayBoard.innerHTML='';
-  for(let i=0;i<relayPlayers;i++){
-    const chip=document.createElement('div');
-    chip.className='relay-chip'+(i===relayIndex?' active':'');
-    chip.innerHTML=(i+1)+'번<small>'+(relayScores[i]??'-')+'개</small>';
-    relayBoard.appendChild(chip);
-  }
-  relayBoard.classList.add('show');
-}
-function startRelayMode(){
-  relayPlayers=parseInt(relayPlayerSel.value||'3');
-  relayIndex=0; relayScores=[]; resultOverlay.classList.remove('show');
-  renderRelayBoard(); startRelayRound();
-}
-function startRelayRound(){
-  renderRelayBoard();
-  modeBadge.querySelector('.mb-title').textContent='릴레이 '+(relayIndex+1)+'번 선수';
-  modeBadge.querySelector('.mb-sub').textContent='30초 뒤 다음 선수로 교대';
-  startSpeedAudioClock('relay');
-}
-function finishRelayRound(){
-  relayScores[relayIndex]=jumpCount;
-  renderRelayBoard();
-  const total=relayScores.reduce((a,b)=>a+(b||0),0);
-  if(relayIndex < relayPlayers-1){
-    document.getElementById('resultIcon').textContent='🏃';
-    document.getElementById('resultBig').textContent=jumpCount+'개';
-    document.getElementById('resultSub').textContent=(relayIndex+1)+'번 선수 완료';
-    document.getElementById('resultNote').textContent='현재 총합 '+total+'개 · 다음 선수 준비';
-    const btn=document.querySelector('.result-again');
-    btn.textContent='다음 선수 시작'; btn.onclick=()=>window.continueRelay();
-    resultOverlay.classList.add('show');
-    setStartCta(false,'다음 선수');
-  }else{
-    const isBest=saveBest('relay',total);
-    document.getElementById('resultIcon').textContent=isBest?'🏆':'🎉';
-    document.getElementById('resultBig').textContent=total+'개';
-    document.getElementById('resultSub').textContent='릴레이 총합 기록';
-    document.getElementById('resultNote').textContent=relayScores.map((v,i)=>(i+1)+'번 '+v+'개').join(' · ');
-    const btn=document.querySelector('.result-again');
-    btn.textContent='다시 하기'; btn.onclick=()=>startGame();
-    resultOverlay.classList.add('show');
-    setStartCta(false,'▶ 다시!'); updateStats(); confetti(true);
-  }
-}
-window.continueRelay=()=>{
-  resultOverlay.classList.remove('show'); relayIndex++; startRelayRound();
-};
-function clearGameTargets(){
-  gameTargets.forEach(t=>t.el?.remove()); gameTargets=[];
-  if(gameNoteTimer){ clearTimeout(gameNoteTimer); gameNoteTimer=null; }
-  if(gameEndTimer){ clearTimeout(gameEndTimer); gameEndTimer=null; }
-  if(gameRaf){ cancelAnimationFrame(gameRaf); gameRaf=null; }
-}
-function gameInterval(){
-  const lv=gameLevelSel.value;
-  if(lv==='easy') return 1050;
-  if(lv==='hard') return 690 + Math.random()*230;
-  return 830 + Math.random()*260;
-}
-function spawnGameNote(){
-  if(!(running && currentMode==='game')) return;
-  const travel=1400;
-  const note=document.createElement('div');
-  note.className='game-note'; note.style.animationDuration=travel+'ms';
-  document.getElementById('gameLane').appendChild(note);
-  const target={time:performance.now()+travel, hit:false, el:note};
-  gameTargets.push(target);
-  setTimeout(()=>{
-    if(running && currentMode==='game' && !target.hit){
-      target.hit=true; gameMisses++; gameCombo=0; updateGameHud(); showJudge('MISS');
-    }
-    note.remove(); gameTargets=gameTargets.filter(x=>x!==target);
-  }, travel+280);
-  gameNoteTimer=setTimeout(spawnGameNote, gameInterval());
-}
-function updateGameHud(){ gameScoreText.textContent=gameScore; gameComboText.textContent=gameCombo; }
-function showJudge(text){
-  jumpFeedback.textContent=text;
-  jumpFeedback.classList.remove('show'); void jumpFeedback.offsetWidth; jumpFeedback.classList.add('show');
-}
-function handleGameJump(now){
-  sndHop();
-  const candidates=gameTargets.filter(t=>!t.hit).map(t=>({t,diff:Math.abs(now-t.time)})).sort((a,b)=>a.diff-b.diff);
-  const best=candidates[0];
-  if(!best || best.diff>280){ gameMisses++; gameCombo=0; updateGameHud(); showJudge('EARLY'); return; }
-  best.t.hit=true; best.t.el.remove(); gameTargets=gameTargets.filter(x=>x!==best.t);
-  if(best.diff<=120){ gameScore+=100+(gameCombo*3); gameCombo++; gameHits++; jumpCount++; showJudge('PERFECT'); }
-  else { gameScore+=60+(gameCombo*2); gameCombo++; gameHits++; jumpCount++; showJudge('GOOD'); }
-  countNum.textContent=jumpCount; statNow.textContent=gameScore; statState.textContent='HIT'; updateGameHud();
-  countNum.classList.remove('pulse'); void countNum.offsetWidth; countNum.classList.add('pulse');
-}
-function startGameMode(){
-  resetCount(); clearGameTargets(); resultOverlay.classList.remove('show');
-  gameScore=0; gameCombo=0; gameHits=0; gameMisses=0; updateGameHud();
-  gameBoard.classList.add('show'); gameHud.classList.add('show');
-  running=true; setStartCta(true,'■ 종료'); statState.textContent='게임중';
-  let remain=30; speedClockNum.textContent='30'; speedClockLabel.textContent='남은 시간'; speedClock.classList.remove('warning','final');
-  const started=performance.now();
-  const clock=()=>{
-    if(!(running && currentMode==='game')) return;
-    const elapsed=(performance.now()-started)/1000; remain=Math.max(0,30-elapsed);
-    speedClockNum.textContent=Math.ceil(remain).toString();
-    speedClock.classList.toggle('warning', remain<=10 && remain>5); speedClock.classList.toggle('final', remain<=5);
-    if(remain<=0){ finishGameMode(); return; }
-    gameRaf=requestAnimationFrame(clock);
-  };
-  spawnGameNote(); clock();
-}
-function finishGameMode(){
-  running=false; clearGameTargets(); gameBoard.classList.remove('show'); gameHud.classList.remove('show');
-  const isBest=saveBest('game',gameScore);
-  document.getElementById('resultIcon').textContent=isBest?'🏆':'🎮';
-  document.getElementById('resultBig').textContent=gameScore+'점';
-  document.getElementById('resultSub').textContent='게임 모드 완료';
-  document.getElementById('resultNote').textContent='성공 '+gameHits+'개 · MISS '+gameMisses+'개';
-  const btn=document.querySelector('.result-again'); btn.textContent='다시 하기'; btn.onclick=()=>startGame();
-  resultOverlay.classList.add('show'); setStartCta(false,'▶ 다시!'); updateStats(); if(isBest) confetti(true);
-}
 /* ============================================================
    게임 흐름
    ============================================================ */
 function setGuide(text){ if(text){ guideMsg.textContent=text; guideMsg.classList.add('show'); } else guideMsg.classList.remove('show'); }
 
 window.setMode=(mode)=>{
-  if(running || speedClockRaf){ stopGame(); }
-  const cfg=MODES[mode];
+  if(running){ stopGame(); }
   currentMode=mode;
   document.querySelectorAll('.mode-btn').forEach(b=>b.classList.toggle('active',b.dataset.mode===mode));
+  const cfg=MODES[mode];
   modeBadge.querySelector('.mb-title').textContent=cfg.title;
   modeBadge.querySelector('.mb-sub').textContent=cfg.sub;
-  timeSelect.classList.toggle('show',mode==='speed');
-  relaySettings.classList.toggle('show',mode==='relay');
-  gameSettings.classList.toggle('show',mode==='game');
-  relayBoard.classList.remove('show'); gameBoard.classList.remove('show'); gameHud.classList.remove('show');
-  countLabel.textContent = mode==='speed' ? '30초 기록' : (mode==='relay' ? '현재 선수' : '성공 점프');
-  resetCount(); resetSpeedClock(); clearGameTargets(); updateStats();
-  setGuide('🔍 전신이 보이게 뒤로 물러서세요'); setStartCta(false,'▶ 시작!'); startCta.disabled=false;
+  timeSelect.classList.toggle('show',cfg.timed);
+  countLabel.textContent = mode==='streak' ? '연속 성공' : '줄넘기 개수';
+  resetCount(); updateStats();
+  setStartCta(false,'▶ 시작!');
 };
 
 function resetCount(){
@@ -788,8 +791,7 @@ function resetCount(){
   countNum.textContent='0'; statNow.textContent='0'; statState.textContent=running?'측정중':'준비';
 }
 function updateStats(){
-  const v=loadBest(currentMode);
-  statBest.textContent = v ? (v + (currentMode==='game'?'점':'개')) : '—';
+  statBest.textContent = (loadBest(currentMode)||'—') + (loadBest(currentMode)?'개':'');
 }
 function setStartCta(playing,text){
   startCta.classList.toggle('playing',playing);
@@ -812,14 +814,23 @@ function runReadyCountdown(sub,cb){
 
 window.startGame=()=>{
   ensureAudio();
-  if(running || speedClockRaf){
+  if(running){ // 중지
     stopGame(); setStartCta(false,'▶ 시작!'); statState.textContent='중단'; return;
   }
   resultOverlay.classList.remove('show');
-  const btn=document.querySelector('.result-again'); btn.textContent='다시 하기'; btn.onclick=()=>startGame();
-  if(currentMode==='speed'){ startSpeedAudioClock('speed'); return; }
-  if(currentMode==='relay'){ startRelayMode(); return; }
-  if(currentMode==='game'){ startGameMode(); return; }
+  resetCount(); setStartCta(true,'⏳ 준비중...'); startCta.disabled=true;
+  const subs={free:'멈추고 싶을 때 종료를 누르세요',timed:'제한 시간 안에 최대한 많이!',streak:'리듬 끊기지 않게!'};
+  const startMode=currentMode;
+  runReadyCountdown(subs[currentMode]||'',()=>{
+    if(currentMode!==startMode) return;
+    running=true; startCta.disabled=false; setStartCta(true,'■ 종료');
+    statState.textContent='측정중';
+    if(MODES[currentMode].timed){
+      const sec=parseInt(timeSel.value||'30');
+      startTimer(sec, finishTimed);
+    }
+    jumpLastT=performance.now(); // 스트릭 타임아웃 기준 초기화
+  });
 };
 
 function startTimer(sec,onEnd){
@@ -836,9 +847,6 @@ function stopGame(){
   if(readyTimer){ clearTimeout(readyTimer); readyTimer=null; }
   if(gameTimer){ clearInterval(gameTimer); gameTimer=null; }
   running=false; readyOverlay.classList.remove('show'); timerBadge.classList.remove('show');
-  stopSpeedClock();
-  try{ speedAudio.pause(); speedAudio.currentTime=0; }catch(e){}
-  clearGameTargets(); gameBoard.classList.remove('show'); gameHud.classList.remove('show');
 }
 
 function finishTimed(){
@@ -964,7 +972,7 @@ document.getElementById('enterBtn').onclick=async()=>{
   document.getElementById('startScreen').classList.add('hidden');
   document.getElementById('app').classList.add('show');
   await initModel(); await startCamera(); loop();
-  setMode('speed'); updateStats();
+  updateStats();
 };
 document.getElementById('flipBtn').onclick=async()=>{
   facingMode=(facingMode==='user')?'environment':'user';
