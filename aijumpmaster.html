@@ -494,6 +494,117 @@ button{font-family:inherit;cursor:pointer;}
   .start-cta{font-size:29px !important;}
 }
 
+
+/* ============================================================
+   UI PATCH 2026-07-08 - LEFT MODE BUTTON SLIM GRADIENT
+   요청: 줄넘기 모드 버튼을 킥마스터처럼 더 얇게,
+        테두리 제거, 왼쪽 앞 → 오른쪽 뒤 방향 그라데이션 적용
+   기능 JS 변경 없음
+   ============================================================ */
+.mode-rail{
+  width:146px !important;
+  gap:7px !important;
+}
+
+.mode-btn{
+  min-height:28px !important;
+  padding:5px 10px 5px 12px !important;
+  border:none !important;
+  border-left:none !important;
+  border-radius:10px !important;
+  background:
+    linear-gradient(105deg,
+      rgba(45,212,191,.34) 0%,
+      rgba(20,184,166,.20) 42%,
+      rgba(5,14,26,.04) 100%) !important;
+  box-shadow:
+    0 8px 16px rgba(0,0,0,.16),
+    inset 1px 0 0 rgba(190,242,100,.22),
+    inset 0 1px 0 rgba(255,255,255,.06) !important;
+  backdrop-filter:none !important;
+  color:rgba(234,244,241,.78) !important;
+  font-size:13px !important;
+  font-weight:1000 !important;
+  line-height:1.08 !important;
+  text-align:left !important;
+  text-shadow:0 2px 9px rgba(0,0,0,.82) !important;
+  position:relative !important;
+  overflow:hidden !important;
+}
+
+.mode-btn::before{
+  content:"" !important;
+  position:absolute !important;
+  inset:0 !important;
+  background:
+    linear-gradient(105deg,
+      rgba(190,242,100,.16) 0%,
+      rgba(45,212,191,.08) 30%,
+      rgba(5,14,26,0) 78%) !important;
+  opacity:.55 !important;
+  pointer-events:none !important;
+}
+
+.mode-btn small{
+  font-size:9px !important;
+  font-weight:800 !important;
+  line-height:1.05 !important;
+  margin-top:1px !important;
+  color:rgba(234,244,241,.48) !important;
+  position:relative !important;
+  z-index:1 !important;
+}
+
+.mode-btn{
+  position:relative !important;
+  z-index:1 !important;
+}
+
+.mode-btn.active{
+  color:#fff !important;
+  background:
+    linear-gradient(105deg,
+      rgba(190,242,100,.50) 0%,
+      rgba(45,212,191,.34) 38%,
+      rgba(5,14,26,.06) 100%) !important;
+  box-shadow:
+    0 0 18px rgba(45,212,191,.20),
+    0 8px 18px rgba(0,0,0,.18),
+    inset 2px 0 0 rgba(190,242,100,.75),
+    inset 0 1px 0 rgba(255,255,255,.10) !important;
+  text-shadow:
+    0 2px 10px rgba(0,0,0,.90),
+    0 0 12px rgba(45,212,191,.62) !important;
+}
+
+.mode-btn.active small{
+  color:var(--lime-bright) !important;
+}
+
+.mode-btn.active::after{
+  display:none !important;
+  content:none !important;
+}
+
+.mode-btn:active{
+  transform:scale(.98) !important;
+}
+
+@media (max-width:420px){
+  .mode-rail{
+    width:122px !important;
+    gap:6px !important;
+  }
+  .mode-btn{
+    min-height:26px !important;
+    padding:4px 8px 4px 10px !important;
+    font-size:12px !important;
+  }
+  .mode-btn small{
+    font-size:8.5px !important;
+  }
+}
+
 </style>
 </head>
 <body>
