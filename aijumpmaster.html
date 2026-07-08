@@ -5,15 +5,21 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
 <title>점프마스터 · 나른랩스</title>
 <!--
-  jumpmaster.html  (나른랩스 · 점프마스터 v0.1)
+  jumpmaster.html  (나른랩스 · 점프마스터 v0.2 — 감지 엔진 개선판)
   ─────────────────────────────────────────────
-  · 킥마스터와 같은 UI 언어(네이비 배경 + 청록/라임 액센트, Noto Sans KR)를 쓰되,
-    킥마스터 실제 화면 레이아웃(좌상단 브랜드 스택, 중앙 상단 히어로 타이틀+안내 캡슐,
-    우측 세로 스탯열, 좌측 모드 레일, 좌하단 목표/시작, 우하단 아이콘 버튼)을 그대로 재현.
+  · 킥마스터와 같은 UI 언어(네이비 배경 + 청록/라임 액센트, Noto Sans KR).
   · MediaPipe Pose로 "엉덩이 높이(hipY)"를 추적해 몸이 위아래로 튀는 것을 세는 줄넘기 카운터.
-  · 이 파일은 [감지 테스트용 1단계]. 로그인/라이선스/PWA는 다음 단계에서 붙임.
-  · 감도 튜닝값은 아래 <script> 최상단 "★ 튜닝 구역"에 모아둠. 슬라이더로도 실시간 조절 가능.
-  · 로직/JS는 기존과 100% 동일 — 이번 수정은 UI(레이아웃/폰트/버튼 디자인)만 변경.
+
+  ★ v0.2 감지 개선 내용 (2026-07-08)
+  1) 모델을 lite로 변경 → 프레임 속도 약 2배 (줄넘기는 정밀도보다 fps가 중요)
+  2) 시작 버튼을 눌러도 기준선을 리셋하지 않음 (뛰는 도중 재캘리브레이션 버그 제거)
+  3) 기준선 캘리브레이션: 평균 → "안정 구간의 중앙값" (움직이는 중엔 기준을 안 잡음)
+  4) 착지 순간 카운트 → "이륙 순간" 카운트 (프레임 놓쳐도 카운트 누락 없음, 반응 빠름)
+  5) 자동 감도: 아이의 실제 점프 높이(최근 피크 중앙값)에 문턱을 자동으로 맞춤
+  6) 착지 크라우칭에 기준선이 끌려가는 문제 수정 (기준선 근처에서만 보정)
+  7) 인식이 잠깐 끊겨도 2.5초간 기준선 유지 (한 프레임 놓쳐도 리셋 안 됨)
+  8) requestVideoFrameCallback 사용 + 카메라 60fps 요청
+  9) 기준선 표시가 켜져 있으면 좌상단에 fps/문턱/현재값 디버그 표시
 -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -174,6 +180,9 @@ button{font-family:inherit;cursor:pointer;}
 .sens-box .sens-row{display:flex;align-items:center;gap:8px;}
 .sens-box input[type=range]{flex:1;accent-color:var(--teal-bright);}
 .sens-box .sv{font-size:11px;font-weight:800;color:var(--lime);width:28px;text-align:right;}
+.auto-row{display:flex;align-items:center;gap:6px;font-size:10.5px;font-weight:800;
+  color:var(--lime-bright);margin-top:2px;user-select:none;cursor:pointer;}
+.auto-row input[type=checkbox]{accent-color:var(--lime);width:14px;height:14px;margin:0;}
 
 .start-cta{border:none;border-radius:14px;padding:16px 0;width:100%;
   font-size:16.5px;font-weight:900;color:#052e2a;margin-top:2px;
@@ -428,6 +437,9 @@ button{font-family:inherit;cursor:pointer;}
   color:var(--lime-bright) !important;
   text-shadow:0 2px 8px rgba(0,0,0,.75) !important;
 }
+.auto-row{
+  text-shadow:0 2px 8px rgba(0,0,0,.82) !important;
+}
 .start-cta{
   width:auto !important;
   padding:8px 0 0 0 !important;
@@ -616,7 +628,7 @@ button{font-family:inherit;cursor:pointer;}
   <div class="hop-emblem"><div class="hop-dot"></div><div class="hop-dot"></div><div class="hop-dot"></div></div>
   <p class="product-sub">카메라가 몸의 움직임을 보고 줄넘기 개수를 세어줍니다. 전신이 보이게 서서 제자리에서 뛰어보세요.</p>
   <button class="start-btn" id="enterBtn">시작하기</button>
-  <div class="start-note">카메라 사용 권한을 허용해 주세요 · 나른랩스 점프마스터 v0.1</div>
+  <div class="start-note">카메라 사용 권한을 허용해 주세요 · 나른랩스 점프마스터 v0.2</div>
 </div>
 
 <!-- ─────────── 앱 화면 (킥마스터 레이아웃으로 재구성) ─────────── -->
@@ -633,7 +645,7 @@ button{font-family:inherit;cursor:pointer;}
       <div class="brand-stack">
         <div class="bs-name">점프마스터</div>
         <div class="bs-tag"><span class="bs-dot"></span>정품 인증됨</div>
-        <div class="bs-meta">나른랩스 · v0.1 · Google MediaPipe</div>
+        <div class="bs-meta">나른랩스 · v0.2 · Google MediaPipe</div>
       </div>
       <div id="timerBadge"><div id="timerNum">30</div><div id="timerLabel">남은 시간</div></div>
     </div>
@@ -647,7 +659,7 @@ button{font-family:inherit;cursor:pointer;}
       <div class="stat-block">
         <div class="sb-label">점프 게이지</div>
         <div class="gauge">
-          <div class="gauge-tick" id="gaugeTick" style="bottom:38%"></div>
+          <div class="gauge-tick" id="gaugeTick" style="bottom:71%"></div>
           <div class="gauge-fill" id="gaugeFill"></div>
         </div>
         <div class="sb-state" id="statState">준비</div>
@@ -693,9 +705,10 @@ button{font-family:inherit;cursor:pointer;}
       <div class="sens-box">
         <label>감도</label>
         <div class="sens-row">
-          <input type="range" id="sensSlider" min="0" max="100" value="50">
-          <span class="sv" id="sensVal">50</span>
+          <input type="range" id="sensSlider" min="0" max="100" value="60">
+          <span class="sv" id="sensVal">60</span>
         </div>
+        <label class="auto-row"><input type="checkbox" id="autoSensChk" checked> 자동 감도 (아이 점프에 맞춤)</label>
       </div>
       <button class="start-cta" id="startCta" onclick="startGame()">▶ 시작!</button>
     </div>
@@ -717,17 +730,24 @@ import { PoseLandmarker, FilesetResolver, DrawingUtils }
 /* ============================================================
    ★ 튜닝 구역 — 여기 숫자만 바꾸면 감지 감도가 달라집니다
    ============================================================ */
-// 점프 인식: 엉덩이가 "몸통 길이 대비" 이만큼 올라가야 떴다고 인정 (기본값, 슬라이더가 실시간 덮어씀)
-let JUMP_UP_RATIO = 0.11;      // ↓ 낮출수록 작은 점프도 인식 (아이·저학년), ↑ 높이면 헛동작 무시
-const JUMP_HYSTERESIS = 0.40;  // 착지 인정선 = UP × 이 비율 (0.4면 UP의 40%까지 내려와야 1회 완료)
-const JUMP_MIN_GAP_MS = 190;   // 연속 점프 최소 간격(ms). 2단뛰기처럼 빠르면 150으로 낮추기
-const STREAK_TIMEOUT_MS = 1500;// 연속 모드에서 이 시간 동안 안 뛰면 스트릭 종료
-const HIP_SMOOTH = 0.6;        // 엉덩이 높이 스무딩(0~1). 클수록 반응 빠름/떨림, 작을수록 부드럽/느림
-const BASELINE_CALIB_FRAMES = 15; // 기준선(서있는 엉덩이 높이) 잡을 때 평균낼 프레임 수(약 0.5~0.8초)
-const BASELINE_DRIFT_DOWN = 0.10; // 서 있는 동안 기준선이 아래로 보정되는 속도
-const BASELINE_DRIFT_UP   = 0.04; // 서 있는 동안 기준선이 위로 보정되는 속도(아래보다 느리게, 점프에 안 딸려가게)
-// 감도 슬라이더(0~100)를 JUMP_UP_RATIO로 매핑: 100=아주 민감(0.06) ↔ 0=엄격(0.18)
-function sliderToRatio(v){ return 0.18 - (v/100)*(0.18-0.06); }
+// 모델: 'lite' = 빠름(권장, 줄넘기는 fps가 중요) / 'full' = 정밀(고사양 기기)
+const MODEL_VARIANT = 'lite';
+
+// 점프 인식: 엉덩이가 "몸통 길이 대비" 이만큼 올라가야 떴다고 인정 (슬라이더가 실시간 덮어씀)
+let JUMP_UP_RATIO = 0.10;        // ↓ 낮출수록 작은 점프도 인식 (아이·저학년), ↑ 높이면 헛동작 무시
+const JUMP_MIN_UP = 0.045;       // 자동 감도가 내려갈 수 있는 하한선 (이보다 낮으면 노이즈 오인식)
+const JUMP_HYSTERESIS = 0.45;    // 착지 인정선 = UP × 이 비율 (다음 카운트를 위한 재장전 기준)
+const JUMP_MIN_GAP_MS = 170;     // 연속 점프 최소 간격(ms). 아주 빠른 아이는 140까지 낮춰도 됨
+const AIR_MAX_MS = 1200;         // 공중 상태가 이보다 길면 기준선 오류로 보고 자동 재캘리브레이션
+const STREAK_TIMEOUT_MS = 1500;  // 연속 모드에서 이 시간 동안 안 뛰면 스트릭 종료
+const BASELINE_CALIB_FRAMES = 15;   // 기준선 잡을 때 모으는 프레임 수
+const BASELINE_STABLE_RANGE = 0.035;// 캘리브레이션 인정 조건: 이 범위 안에서 가만히 있어야 함
+const LOST_GRACE_MS = 2500;      // 인식이 끊겨도 이 시간 동안은 기준선 유지
+// 자동 감도: 최근 점프 피크의 중앙값 × 이 비율을 문턱으로 사용
+const AUTO_PEAK_RATIO = 0.55;
+const AUTO_PEAK_WINDOW = 8;      // 최근 몇 개 점프의 피크를 기억할지
+// 감도 슬라이더(0~100)를 JUMP_UP_RATIO로 매핑: 100=아주 민감(0.05) ↔ 0=엄격(0.17)
+function sliderToRatio(v){ return 0.17 - (v/100)*(0.17-0.05); }
 
 /* ── DOM ── */
 const video=document.getElementById('video');
@@ -751,6 +771,7 @@ const timeSelect=document.getElementById('timeSelect');
 const timeSel=document.getElementById('timeSel');
 const sensSlider=document.getElementById('sensSlider');
 const sensVal=document.getElementById('sensVal');
+const autoSensChk=document.getElementById('autoSensChk');
 const statNow=document.getElementById('statNow');
 const statBest=document.getElementById('statBest');
 const statState=document.getElementById('statState');
@@ -771,8 +792,14 @@ let showCalib=true;
 // 점프 감지 상태
 let jumpCount=0, jumpHipY=null, jumpBaselineY=null, jumpState='ground', jumpLastT=0;
 let curTorso=null, curRiseNorm=0, personVisible=false;
-let jumpBaselineSamples=[]; // 기준선 잡는 중 모으는 프레임들
+let jumpBaselineSamples=[];  // 기준선 잡는 중 모으는 프레임들
 let calibratingBaseline=false;
+let airStartT=0, peakRise=0;
+let recentPeaks=[];          // 최근 점프들의 피크 (자동 감도용)
+let autoSens=true;
+let lostSince=null;          // 인식 끊긴 시각 (grace 처리용)
+let lastFrameT=0;            // 스무딩 dt 계산용
+let fpsEMA=0;                // 디버그 fps 표시용
 
 /* ============================================================
    오디오 (Web Audio API)
@@ -828,51 +855,98 @@ function saveBest(mode,value){
 }
 
 /* ============================================================
-   줄넘기 감지 — 엉덩이 높이 기반 바운스 카운트
+   줄넘기 감지 — 엉덩이 높이 기반 바운스 카운트 (v0.2 엔진)
+   ─────────────────────────────────────────────
+   · 스무딩: 속도 적응형 (빨리 움직일 땐 즉각 반응, 가만히 있을 땐 부드럽게)
+     → 고정 스무딩이 점프 피크를 깎아먹던 문제 해결
+   · 캘리브레이션: "가만히 서 있는 안정 구간"의 중앙값으로 기준선 확정
+     → 움직이는 도중에 엉뚱한 기준선이 잡히던 문제 해결
+   · 카운트 시점: 이륙(문턱 상향 돌파) 순간 → 프레임이 낮아도 착지 프레임을
+     놓쳐서 카운트가 빠지는 일이 없고 소리 피드백도 빠름
+   · 자동 감도: 최근 점프 피크의 중앙값 × 0.55를 문턱으로 사용
+     → 점프가 낮은 아이도, 높은 아이도 각자 높이에 맞게 자동 조절
    ============================================================ */
+function currentUP(){
+  if(autoSens && recentPeaks.length>=3){
+    const s=[...recentPeaks].sort((a,b)=>a-b);
+    const med=s[Math.floor(s.length/2)];
+    // 자동 문턱: 하한선(JUMP_MIN_UP) ~ 슬라이더값 사이에서 아이 점프 높이에 맞춤
+    return Math.min(JUMP_UP_RATIO, Math.max(JUMP_MIN_UP, med*AUTO_PEAK_RATIO));
+  }
+  return JUMP_UP_RATIO;
+}
+
+function smoothHip(rawY, now){
+  if(jumpHipY==null){ jumpHipY=rawY; lastFrameT=now; return; }
+  const dt=Math.max(1, now-lastFrameT); lastFrameT=now;
+  // 속도 적응형 알파: 느린 움직임 0.35 ~ 빠른 움직임 0.85
+  const vel=Math.abs(rawY-jumpHipY)/dt;             // (정규화 좌표)/ms
+  const a=Math.min(0.85, 0.35 + vel*900);
+  jumpHipY = jumpHipY*(1-a) + rawY*a;
+}
+
 function detectJump(hipY, torso){
   if(!(torso>0.02)) return;
   curTorso=torso;
-  // 반응성 위해 가벼운 스무딩
-  jumpHipY = (jumpHipY==null) ? hipY : jumpHipY*(1-HIP_SMOOTH) + hipY*HIP_SMOOTH;
+  const now=performance.now();
+  smoothHip(hipY, now);
 
-  // ── 기준선(서 있는 엉덩이 높이) 최초 캘리브레이션: 한 프레임 스냅샷 대신 여러 프레임 평균 ──
+  // ── 기준선 최초 캘리브레이션: "안정 구간"의 중앙값 ──
   if(jumpBaselineY==null){
     calibratingBaseline=true;
     jumpBaselineSamples.push(jumpHipY);
+    if(jumpBaselineSamples.length>BASELINE_CALIB_FRAMES) jumpBaselineSamples.shift();
     if(!running) setGuide('⚖️ 기준 잡는 중… 가만히 서주세요');
     if(jumpBaselineSamples.length>=BASELINE_CALIB_FRAMES){
-      const sum=jumpBaselineSamples.reduce((a,b)=>a+b,0);
-      jumpBaselineY=sum/jumpBaselineSamples.length;
-      jumpBaselineSamples=[];
-      calibratingBaseline=false;
-      if(!running) setGuide('');
+      const mn=Math.min(...jumpBaselineSamples), mx=Math.max(...jumpBaselineSamples);
+      if((mx-mn) < BASELINE_STABLE_RANGE){ // 가만히 서 있을 때만 기준선 확정
+        const s=[...jumpBaselineSamples].sort((a,b)=>a-b);
+        jumpBaselineY=s[Math.floor(s.length/2)];   // 평균 대신 중앙값 (튀는 값에 강함)
+        jumpBaselineSamples=[]; calibratingBaseline=false;
+        if(!running) setGuide('');
+      }
+      // 안정되지 않았으면 오래된 샘플을 버리며 안정될 때까지 계속 수집
     }
     return;
   }
-  // 서 있는 상태(ground)에서만 기준선을 양방향으로 천천히 보정 (점프 중엔 안 딸려가게)
-  if(jumpState==='ground'){
-    if(jumpHipY > jumpBaselineY){ jumpBaselineY = jumpBaselineY*(1-BASELINE_DRIFT_DOWN) + jumpHipY*BASELINE_DRIFT_DOWN; }
-    else { jumpBaselineY = jumpBaselineY*(1-BASELINE_DRIFT_UP) + jumpHipY*BASELINE_DRIFT_UP; }
-  }
+
+  const UP=currentUP(), DOWN=UP*JUMP_HYSTERESIS;
   const riseNorm=(jumpBaselineY - jumpHipY)/torso; // >0 이면 baseline보다 위로 뜬 상태
   curRiseNorm=Math.max(0,riseNorm);
-  const UP=JUMP_UP_RATIO, DOWN=JUMP_UP_RATIO*JUMP_HYSTERESIS;
-  const now=performance.now();
+
+  // ── 기준선 보정: 서 있고 + 기준선 근처일 때만 (착지 크라우칭에 안 끌려가게) ──
+  if(jumpState==='ground' && Math.abs(riseNorm) < UP*0.5){
+    const drift = running ? 0.025 : 0.08; // 측정 중엔 더 천천히
+    jumpBaselineY = jumpBaselineY*(1-drift) + jumpHipY*drift;
+  }
 
   if(jumpState==='ground'){
-    if(riseNorm>UP && (now-jumpLastT)>JUMP_MIN_GAP_MS){ jumpState='air'; statState.textContent='점프!'; }
+    // ★ 이륙 순간 카운트: 문턱을 위로 돌파하면 즉시 1회 인정
+    if(riseNorm>UP && (now-jumpLastT)>JUMP_MIN_GAP_MS){
+      jumpState='air'; airStartT=now; peakRise=riseNorm;
+      if(running){ // 측정 중일 때만 카운트 (대기/카운트다운 중 점프는 세지 않음)
+        jumpCount++; jumpLastT=now;
+        onJumpCounted();
+      } else { jumpLastT=now; }
+    }
   } else { // air
+    peakRise=Math.max(peakRise,riseNorm);
     if(riseNorm<DOWN){
-      jumpState='ground'; jumpCount++; jumpLastT=now;
-      onJumpCounted();
+      // 착지 → 재장전 + 이번 점프의 피크를 자동 감도에 반영
+      jumpState='ground'; statState.textContent=running?'착지':'준비';
+      recentPeaks.push(peakRise);
+      if(recentPeaks.length>AUTO_PEAK_WINDOW) recentPeaks.shift();
+    } else if((now-airStartT)>AIR_MAX_MS){
+      // 공중 상태가 비정상적으로 길다 = 기준선이 잘못됨 → 자동 재캘리브레이션
+      jumpState='ground';
+      jumpBaselineY=null; jumpBaselineSamples=[];
     }
   }
 }
 function onJumpCounted(){
   countNum.textContent=jumpCount;
   countNum.classList.remove('pulse'); void countNum.offsetWidth; countNum.classList.add('pulse');
-  statNow.textContent=jumpCount; statState.textContent='착지';
+  statNow.textContent=jumpCount; statState.textContent='점프!';
   sndHop();
   if(jumpCount%10===0){ sndTen(jumpCount); confetti(false); }
   if(jumpCount%50===0){ confetti(true); }
@@ -897,9 +971,16 @@ window.setMode=(mode)=>{
 };
 
 function resetCount(){
-  jumpCount=0; jumpHipY=null; jumpBaselineY=null; jumpState='ground'; jumpLastT=0; curRiseNorm=0;
-  jumpBaselineSamples=[]; calibratingBaseline=false;
+  // ★ v0.2: 기준선(jumpBaselineY)은 리셋하지 않음!
+  //   시작 전에 계속 추적해 둔 기준선을 그대로 써야
+  //   카운트다운 직후 첫 점프부터 정확히 잡힘.
+  //   (아이가 바뀌면 "기준 재설정" 버튼으로 명시적으로 리셋)
+  jumpCount=0; jumpState='ground'; jumpLastT=0; curRiseNorm=0; peakRise=0;
   countNum.textContent='0'; statNow.textContent='0'; statState.textContent=running?'측정중':'준비';
+}
+function fullRecalibrate(){
+  jumpHipY=null; jumpBaselineY=null; jumpBaselineSamples=[]; calibratingBaseline=false;
+  recentPeaks=[]; jumpState='ground'; curRiseNorm=0; peakRise=0; lostSince=null;
 }
 function updateStats(){
   statBest.textContent = (loadBest(currentMode)||'—') + (loadBest(currentMode)?'개':'');
@@ -987,7 +1068,10 @@ function showResult(cnt,sub,note){
 async function initModel(){
   setGuide('AI 모델 로딩 중…');
   const vision=await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm");
-  const MODEL_URL="https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task";
+  // ★ v0.2: lite 모델 기본 사용 — 줄넘기 감지는 랜드마크 정밀도보다 프레임 속도가 중요
+  const MODEL_URL = MODEL_VARIANT==='full'
+    ? "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task"
+    : "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task";
   try{ // 1차: GPU 가속
     poseLandmarker=await PoseLandmarker.createFromOptions(vision,{
       baseOptions:{modelAssetPath:MODEL_URL,delegate:"GPU"}, runningMode:"VIDEO", numPoses:1 });
@@ -1001,7 +1085,9 @@ async function initModel(){
 async function startCamera(){
   if(stream) stream.getTracks().forEach(t=>t.stop());
   try{
-    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode,width:{ideal:1280},height:{ideal:720}},audio:false});
+    // ★ v0.2: 60fps 요청 (지원 기기에서 감지 시간 해상도 2배)
+    stream=await navigator.mediaDevices.getUserMedia({
+      video:{facingMode,width:{ideal:1280},height:{ideal:720},frameRate:{ideal:60}},audio:false});
     video.srcObject=stream; await video.play();
     setGuide('🔍 전신이 보이게 뒤로 물러서세요');
   }catch(e){ setGuide('카메라 실패: '+e.message); }
@@ -1016,17 +1102,43 @@ function drawCalibration(hipCanvasY, baseCanvasY){
   ctx.lineWidth=airborne?4:2; ctx.setLineDash([12,10]);
   ctx.beginPath(); ctx.moveTo(0,baseCanvasY); ctx.lineTo(canvas.width,baseCanvasY); ctx.stroke();
   ctx.setLineDash([]);
+  // 이륙 문턱선 (이 선을 넘으면 카운트) — 얇은 라임 점선
+  if(curTorso){
+    const upY=baseCanvasY - currentUP()*curTorso*canvas.height;
+    ctx.strokeStyle='rgba(190,242,100,.5)'; ctx.lineWidth=1.5; ctx.setLineDash([4,6]);
+    ctx.beginPath(); ctx.moveTo(0,upY); ctx.lineTo(canvas.width,upY); ctx.stroke();
+    ctx.setLineDash([]);
+  }
   // 현재 엉덩이 위치 마커
   ctx.fillStyle=airborne?'rgba(190,242,100,1)':'rgba(45,212,191,1)';
   ctx.beginPath(); ctx.arc(canvas.width/2, hipCanvasY, airborne?9:6, 0, Math.PI*2); ctx.fill();
   ctx.restore();
 }
 
-function loop(){
+function drawDebug(){
+  if(!showCalib) return;
+  // 좌상단 디버그: fps / 문턱 / 현재 뜬 정도 (미러링 보정해서 그림)
+  ctx.save();
+  if(camWrap.classList.contains('mirrored')){ ctx.translate(canvas.width,0); ctx.scale(-1,1); }
+  ctx.font='bold 13px monospace';
+  ctx.fillStyle='rgba(190,242,100,.85)';
+  const up=currentUP();
+  const auto=(autoSens && recentPeaks.length>=3)?' 자동':'';
+  ctx.fillText(Math.round(fpsEMA)+'fps · 문턱 '+up.toFixed(3)+auto+' · 현재 '+curRiseNorm.toFixed(3), 10, canvas.height-14);
+  ctx.restore();
+}
+
+function processFrame(){
   if(poseLandmarker && video.readyState>=2 && video.currentTime!==lastVideoTime){
     lastVideoTime=video.currentTime;
     if(canvas.width!==video.videoWidth){ canvas.width=video.videoWidth; canvas.height=video.videoHeight; }
-    const result=poseLandmarker.detectForVideo(video,performance.now());
+
+    // fps 측정 (디버그 표시용)
+    const nowT=performance.now();
+    if(processFrame._t){ const inst=1000/Math.max(1,nowT-processFrame._t); fpsEMA=fpsEMA?fpsEMA*0.9+inst*0.1:inst; }
+    processFrame._t=nowT;
+
+    const result=poseLandmarker.detectForVideo(video,nowT);
     ctx.clearRect(0,0,canvas.width,canvas.height);
 
     if(result.landmarks && result.landmarks.length>0){
@@ -1034,7 +1146,7 @@ function loop(){
       const hipVis=Math.max(lm[23]?.visibility??0, lm[24]?.visibility??0);
       const shVis =Math.max(lm[11]?.visibility??0, lm[12]?.visibility??0);
       if(hipVis>0.3 && shVis>0.3){
-        personVisible=true; setGuide('');
+        personVisible=true; lostSince=null; setGuide(calibratingBaseline&&!running?'⚖️ 기준 잡는 중… 가만히 서주세요':'');
         // 스켈레톤 (팀 컬러)
         drawingUtils.drawConnectors(lm,PoseLandmarker.POSE_CONNECTIONS,{color:'rgba(20,184,166,.55)',lineWidth:2});
         drawingUtils.drawLandmarks(lm,{color:'#A3E635',lineWidth:1,radius:3});
@@ -1043,36 +1155,50 @@ function loop(){
         const shoulderY=(lm[11].y+lm[12].y)/2;
         const torso=hipY-shoulderY;
 
-        if(running){
-          detectJump(hipY,torso);
-          // 연속 모드 리듬 종료 체크
-          if(currentMode==='streak' && jumpCount>0 && (performance.now()-jumpLastT)>STREAK_TIMEOUT_MS){
-            finishStreak();
-          }
-        } else {
-          // 미측정 시에도 기준선을 계속 잡아둠(시작하면 바로 반응)
-          detectJump(hipY,torso);
+        detectJump(hipY,torso); // 측정 전에도 기준선을 계속 추적 (시작하면 바로 반응)
+        if(running && currentMode==='streak' && jumpCount>0 && (performance.now()-jumpLastT)>STREAK_TIMEOUT_MS){
+          finishStreak();
         }
-
-        // 게이지 (뜬 정도 → 0~100%). UP 문턱을 100%로 스케일
-        const pct=Math.max(0,Math.min(100,(curRiseNorm/(JUMP_UP_RATIO*1.4))*100));
+        // 게이지 (뜬 정도 → 0~100%). 현재 문턱을 71% 위치로 스케일
+        const UP=currentUP();
+        const pct=Math.max(0,Math.min(100,(curRiseNorm/(UP*1.4))*100));
         gaugeFill.style.height=pct+'%';
-        gaugeTick.style.bottom=(100/1.4)+'%'; // UP 문턱 위치 표시
+        gaugeTick.style.bottom=(100/1.4)+'%';
 
         // 보정선 그리기
         if(jumpBaselineY!=null){
-          drawCalibration(hipY*canvas.height, jumpBaselineY*canvas.height);
+          drawCalibration(jumpHipY*canvas.height, jumpBaselineY*canvas.height);
         }
+        drawDebug();
       } else {
-        personVisible=false; if(!running) setGuide('🔍 전신이 보이게 뒤로 물러서세요');
-        gaugeFill.style.height='0%';
+        handlePersonLost();
       }
     } else {
-      personVisible=false; if(!running) setGuide('🔍 사람을 찾는 중…');
-      gaugeFill.style.height='0%'; jumpHipY=null; jumpBaselineY=null;
+      handlePersonLost();
     }
   }
-  requestAnimationFrame(loop);
+}
+function handlePersonLost(){
+  personVisible=false;
+  if(!running) setGuide('🔍 전신이 보이게 뒤로 물러서세요');
+  gaugeFill.style.height='0%';
+  // ★ v0.2: 잠깐 끊긴 것으로는 기준선을 지우지 않음 (grace 시간)
+  const now=performance.now();
+  if(lostSince==null){ lostSince=now; return; }
+  if(now-lostSince>LOST_GRACE_MS){
+    jumpHipY=null; jumpBaselineY=null; jumpBaselineSamples=[]; jumpState='ground';
+    lostSince=null;
+  }
+}
+
+/* 감지 루프: 가능하면 requestVideoFrameCallback (새 비디오 프레임마다 정확히 1회) */
+function loop(){
+  if('requestVideoFrameCallback' in HTMLVideoElement.prototype){
+    const onFrame=()=>{ processFrame(); video.requestVideoFrameCallback(onFrame); };
+    video.requestVideoFrameCallback(onFrame);
+  } else {
+    (function raf(){ processFrame(); requestAnimationFrame(raf); })();
+  }
 }
 
 /* ============================================================
@@ -1089,6 +1215,7 @@ document.getElementById('flipBtn').onclick=async()=>{
   facingMode=(facingMode==='user')?'environment':'user';
   camWrap.classList.toggle('mirrored',facingMode==='user');
   await startCamera();
+  fullRecalibrate(); // 카메라가 바뀌면 기준선도 새로
 };
 document.getElementById('fsBtn').onclick=()=>{
   const el=document.documentElement;
@@ -1102,16 +1229,18 @@ document.getElementById('calBtn').onclick=(e)=>{
   showCalib=!showCalib; e.target.textContent=showCalib?'👁 기준선 켜짐':'👁 기준선 꺼짐';
 };
 document.getElementById('recalBtn').onclick=()=>{
-  // 다음 아이/자세가 바뀌었을 때 기준선을 즉시 새로 잡도록 강제 리셋
-  jumpHipY=null; jumpBaselineY=null; jumpBaselineSamples=[]; calibratingBaseline=false;
+  // 다음 아이/자세가 바뀌었을 때: 기준선 + 자동 감도 기억까지 전부 새로
+  fullRecalibrate();
   setGuide('⚖️ 기준 다시 잡는 중… 가만히 서주세요');
 };
 sensSlider.oninput=()=>{
   JUMP_UP_RATIO=sliderToRatio(parseInt(sensSlider.value));
   sensVal.textContent=sensSlider.value;
 };
+autoSensChk.onchange=()=>{ autoSens=autoSensChk.checked; };
 // 초기 감도값 반영
 JUMP_UP_RATIO=sliderToRatio(parseInt(sensSlider.value));
+autoSens=autoSensChk.checked;
 
 /* ============================================================
    모바일 뷰포트 높이 보정 (아이폰 주소창 대응)
