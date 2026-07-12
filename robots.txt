@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /admin.html
+Disallow: /admin(
+
+Sitemap: https://국가대표마스터태권도장.kr/sitemap.xml
