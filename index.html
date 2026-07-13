@@ -765,7 +765,7 @@ footer{
   <div class="hero-inner">
     <div class="hero-badge" id="heroBadge">구미 산동 최고의 태권도장</div>
     <p class="hero-sub" id="heroSub">다양한 경험, 경험에서 오는 자신감</p>
-    <h1 id="heroH1"><span class="h1-small" style="color:var(--white)">국가대표</span><span class="h1-big" style="color:var(--gold)">마스터</span><span class="h1-big" style="color:var(--white)">태권도장</span></h1>
+    <h1 id="heroH1"><span class="h1-small" style="color:var(--white)">국가대표</span><span class="h1-big" style="color:var(--gold);white-space:nowrap">마스터</span><wbr><span class="h1-big" style="color:var(--white);white-space:nowrap">태권도장</span></h1>
     <p class="hero-desc" id="heroDesc">규율과 자신감, 체력을 한 번에 키웁니다.<br>경북 구미시 산동 지역 차량운행 실시.</p>
     <div class="hero-btns">
       <button class="btn-primary" onclick="document.getElementById('contact').scrollIntoView({behavior:'smooth'})">무료 체험수업 신청</button>
@@ -1021,7 +1021,7 @@ function renderHero(){
   const d=ld('hero');
   document.getElementById('heroBadge').textContent=d.badge||'구미 산동 최고의 태권도장';
   document.getElementById('heroSub').textContent=d.line1||'다양한 경험, 경험에서 오는 자신감';
-  document.getElementById('heroH1').innerHTML='<span class="h1-small" style="color:var(--white)">국가대표</span><span class="h1-big" style="color:var(--gold)">마스터</span><span class="h1-big" style="color:var(--white)">태권도장</span>';
+  document.getElementById('heroH1').innerHTML='<span class="h1-small" style="color:var(--white)">국가대표</span><span class="h1-big" style="color:var(--gold);white-space:nowrap">마스터</span><wbr><span class="h1-big" style="color:var(--white);white-space:nowrap">태권도장</span>';
   document.getElementById('heroDesc').innerHTML=esc(d.desc||'규율과 자신감, 체력을 한 번에 키웁니다.\n경북 구미시 산동 지역 차량운행 실시.').replace(/\n/g,'<br>');
   document.getElementById('heroStats').innerHTML=`
     <div class="hero-stat"><strong>${esc(d.stat1_num||'20+')}</strong><span>${esc(d.stat1_label||'년 지도 경력')}</span></div>
