@@ -619,6 +619,65 @@ footer{
  .care-layout{grid-template-columns:1fr;gap:36px;}
 }
 
+
+/* 2026-07-29 refinement v2 */
+.hero{padding-top:148px;padding-bottom:84px;}
+.hero-inner{max-width:1120px;}
+.hero h1{max-width:930px;margin-bottom:28px;}
+.hero h1 .h1-small,.hero h1 .h1-big{font-size:clamp(3rem,5.6vw,5.35rem)!important;line-height:1.08;}
+.hero-desc{font-size:clamp(1rem,1.35vw,1.22rem);line-height:1.75;max-width:610px;margin-bottom:34px;}
+.hero-btns{margin-bottom:0;}
+
+section{padding:104px 28px;}
+.section-inner{max-width:1120px;}
+.section-title{font-size:clamp(2.2rem,4.2vw,3.45rem);line-height:1.18;margin-bottom:18px;}
+.section-desc{font-size:1rem;max-width:720px;line-height:1.85;}
+
+.strengths-bg{background:#F7F8FA;}
+.strengths-grid{margin-top:50px;border:0;gap:18px;background:transparent;}
+.strength-card,.strength-card:first-child,.strength-card:last-child{padding:0;border:1px solid var(--line);background:#fff;overflow:hidden;}
+.strength-card::before{position:absolute;top:22px;left:22px;z-index:2;margin:0;color:#fff;background:rgba(10,22,40,.72);padding:5px 8px;font-size:.68rem;letter-spacing:.08em;}
+.strength-media{height:210px;background:#DCE2EA center/cover no-repeat;position:relative;}
+.strength-media::after{content:'';position:absolute;inset:0;background:linear-gradient(to top,rgba(10,22,40,.3),transparent 55%);}
+.strength-copy{padding:28px 26px 30px;}
+.strength-card h3{font-size:1.35rem;margin-bottom:12px;}
+.strength-card p{font-size:.93rem;line-height:1.8;max-width:none;}
+
+.programs-grid{margin-top:44px;gap:22px;}
+.program-card{display:grid;grid-template-columns:42% 58%;min-height:260px;border:1px solid var(--line);background:#fff;overflow:hidden;}
+.program-thumb{height:100%;min-height:260px;}
+.program-thumb.no-image{display:block;background:linear-gradient(145deg,#EAF0F8,#F6F8FB);position:relative;}
+.program-thumb.no-image::before{content:'';position:absolute;inset:24px;border:1px solid rgba(10,22,40,.10);}
+.program-body{padding:34px 30px;display:flex;flex-direction:column;justify-content:center;min-height:0;}
+.program-tag{font-size:.76rem;margin-bottom:16px;letter-spacing:.03em;}
+.program-body h3{font-size:1.5rem;margin-bottom:14px;}
+.program-body p{font-size:.95rem;line-height:1.8;}
+
+.master-inner{max-width:1120px;}
+.facility-grid{margin-top:42px;gap:16px;}
+.gallery-grid{margin-top:40px;gap:14px;}
+.faq-list{margin-top:34px;}
+.blog-link-wrap{margin-top:34px;}
+
+@media(max-width:900px){
+  .program-card{grid-template-columns:1fr;}
+  .program-thumb{min-height:220px;}
+}
+@media(max-width:768px){
+  section{padding:76px 20px;}
+  .hero{padding:118px 20px 72px;}
+  .hero h1 .h1-small,.hero h1 .h1-big{font-size:clamp(2.55rem,10.5vw,4rem)!important;}
+  .strengths-grid{gap:14px;}
+  .strength-card,.strength-card:first-child,.strength-card:last-child{border:1px solid var(--line);}
+  .strength-media{height:190px;}
+  .programs-grid{gap:16px;}
+  .program-body{padding:26px 22px 28px;}
+}
+@media(max-width:480px){
+  .hero h1 .h1-small,.hero h1 .h1-big{font-size:clamp(2.35rem,11.5vw,3.35rem)!important;}
+  .section-title{font-size:clamp(2rem,9vw,2.7rem);}
+}
+
 </style>
 <script type="application/ld+json">
 {
@@ -1123,9 +1182,15 @@ function renderStrengths(){
     {title:'안전한 등하원',desc:getDesc('차량','산동 지역 학교와 주요 아파트를 중심으로 안전하게 차량을 운행합니다.')},
     {title:'수련 전후 돌봄',desc:getDesc('돌봄','학교 수업이 끝난 뒤 수련 전후로 안전하게 머물 수 있도록 생활지도와 돌봄을 함께 운영합니다.')}
   ];
-  document.getElementById('strengthsGrid').innerHTML=data.map((item,i)=>
-    '<div class="strength-card" data-index="0'+(i+1)+'"><h3>'+esc(item.title)+'</h3><p>'+esc(item.desc)+'</p></div>'
-  ).join('');
+  const strengthImages=[
+    loadImg('prog_img_1')||loadImg('gallery_0')||loadImg('facility_0')||loadImg('hero_bg'),
+    loadImg('facility_3')||loadImg('gallery_1')||loadImg('hero_bg'),
+    loadImg('facility_1')||loadImg('gallery_2')||loadImg('prog_img_0')||loadImg('hero_bg')
+  ];
+  document.getElementById('strengthsGrid').innerHTML=data.map((item,i)=>{
+    const mediaStyle=strengthImages[i]?(' style="background-image:url('+strengthImages[i]+')"'):'';
+    return '<article class="strength-card" data-index="0'+(i+1)+'"><div class="strength-media"'+mediaStyle+'></div><div class="strength-copy"><h3>'+esc(item.title)+'</h3><p>'+esc(item.desc)+'</p></div></article>';
+  }).join('');
 }
 
 const PROG_COLORS=['linear-gradient(135deg,#1E3A6A,#152545)','linear-gradient(135deg,#2D1B4E,#1A0F30)','linear-gradient(135deg,#1A3A2A,#0F2218)','linear-gradient(135deg,#3D1A1A,#250E0E)','linear-gradient(135deg,#1A2D3D,#0F1D27)','linear-gradient(135deg,#2D2A1A,#1C1A0F)'];
