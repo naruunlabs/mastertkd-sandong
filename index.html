@@ -564,18 +564,20 @@ footer{
 .hero-badge{color:rgba(255,255,255,.62);border-bottom-color:rgba(255,255,255,.25);font-weight:600;letter-spacing:.02em;}
 .hero-badge::before{display:none;}
 .hero h1{max-width:820px;line-height:1.12;margin-bottom:26px;}
-.hero h1 .h1-small,.hero h1 .h1-big{display:block!important;font-size:clamp(2.5rem,6.6vw,5.6rem)!important;color:#fff!important;white-space:normal!important;}
+.hero h1 .h1-small,.hero h1 .h1-big{display:block!important;font-size:clamp(2.4rem,5.2vw,4.75rem)!important;color:#fff!important;white-space:nowrap!important;}
 .hero h1 .h1-big:last-child{color:#fff!important;}
 .hero-sub{display:none;}
 .hero-desc{max-width:620px;font-size:clamp(1rem,1.7vw,1.25rem);font-weight:500;color:rgba(255,255,255,.7);}
 .hero-stats{display:none!important;}
 .section-title br{display:none;}
-.strengths-grid{display:block;margin-top:38px;border-top:1px solid var(--line);}
-.strength-card{display:grid;grid-template-columns:72px 220px 1fr;gap:24px;align-items:start;padding:28px 0;border:0;border-bottom:1px solid var(--line);border-radius:0;box-shadow:none!important;background:transparent;transform:none!important;}
-.strength-card::before{content:attr(data-index);font-size:.75rem;font-weight:700;color:var(--red);letter-spacing:.08em;padding-top:3px;}
+.strengths-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;margin-top:42px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);}
+.strength-card{position:relative;display:block;padding:32px 30px 34px;border:0;border-right:1px solid var(--line);border-radius:0;box-shadow:none!important;background:transparent;transform:none!important;}
+.strength-card:first-child{padding-left:0;}
+.strength-card:last-child{border-right:0;padding-right:0;}
+.strength-card::before{content:attr(data-index);display:block;font-size:.72rem;font-weight:700;color:var(--red);letter-spacing:.1em;margin-bottom:34px;}
 .strength-icon{display:none!important;}
-.strength-card h3{font-size:1.05rem;margin:0;}
-.strength-card p{font-size:.92rem;line-height:1.8;max-width:640px;}
+.strength-card h3{font-size:1.2rem;letter-spacing:-.035em;margin:0 0 12px;color:var(--navy);}
+.strength-card p{font-size:.91rem;line-height:1.8;max-width:290px;color:var(--muted);}
 .programs-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;}
 .program-card{border-radius:2px;}
 .program-thumb:empty{display:none;}
@@ -607,8 +609,12 @@ footer{
 #mapGoogleBtn{display:none;}
 .float-btn svg{display:none;}
 @media(max-width:768px){
- .strength-card{grid-template-columns:42px 1fr;gap:8px 14px;}
- .strength-card p{grid-column:2;}
+ .hero h1 .h1-small,.hero h1 .h1-big{font-size:clamp(2.25rem,10vw,3.7rem)!important;white-space:normal!important;}
+ .strengths-grid{grid-template-columns:1fr;}
+ .strength-card,.strength-card:first-child,.strength-card:last-child{padding:24px 0;border-right:0;border-bottom:1px solid var(--line);}
+ .strength-card:last-child{border-bottom:0;}
+ .strength-card::before{margin-bottom:12px;}
+ .strength-card p{max-width:none;}
  .programs-grid{grid-template-columns:1fr;}
  .care-layout{grid-template-columns:1fr;gap:36px;}
 }
@@ -1004,8 +1010,7 @@ const db = getFirestore(app);
 // ── 기본값 ──
 const DEFS = {
   basic:{phone:'010-2042-2546',kakao:'',address:'경북 구미시 산동읍 신당2로 29 대호프라자 8층',mapurl:'',weekday_start:'14:00',weekday_end:'21:00',sat_start:'10:00',sat_end:'15:00',closed:'일요일·공휴일 휴관',ceo:'',brn:''},
-  hero:{badge:'구미 산동 유치부·초등부 태권도',line1:'',sub:'',desc:'체계적인 태권도 수련과 차량운행,
-수련 전후 돌봄을 함께 운영합니다.'},
+  hero:{badge:'구미 산동 유치부·초등부 태권도',line1:'',sub:'',desc:'체계적인 태권도 수련과 차량운행,\n수련 전후 돌봄을 함께 운영합니다.'},
   strengths:[{icon:'',title:'경험 있는 전문 지도',desc:'오랜 현장 지도 경험을 바탕으로 아이의 수준에 맞춰 안전하게 지도합니다.'},{icon:'',title:'차량 운행',desc:'산동 주요 아파트·학교를 중심으로 안전한 차량운행을 실시합니다.'},{icon:'',title:'방과 후 돌봄',desc:'수련 전후 아이들이 안전하게 머물 수 있도록 방과 후 돌봄과 생활지도를 함께 운영합니다.'},{icon:'',title:'처음 시작하는 아이도 OK',desc:'낯가림이 있거나 운동이 처음인 아이도 단계별로 적응할 수 있게 지도합니다.'},{icon:'',title:'체계적인 승급 시스템',desc:'정기 승급심사로 목표의식과 성취감을 키웁니다.'},{icon:'',title:'체력·집중력·자신감',desc:'기초 체력, 집중력, 자기절제, 발표 자신감을 함께 키우는 수업을 지향합니다.'},{icon:'',title:'대회 참가 지원',desc:'각종 태권도 대회 참가를 체계적으로 지원합니다.'}],
   programs:[{tag:'5세 ~ 7세',emoji:'',title:'유치부',desc:'놀이와 기본 예절을 함께 배우며 기초 체력과 균형 감각을 키웁니다.'},{tag:'초등 1 ~ 6학년',emoji:'',title:'초등부',desc:'태권도 기본기와 품새, 체력, 집중력, 자신감을 균형 있게 기릅니다.'},{tag:'중·고등학교',emoji:'',title:'중고등부',desc:'체력 관리와 심화 기술 교육. 단증 취득 및 대회 준비.'},{tag:'별도 모집',emoji:'',title:'시범단',desc:'전문 퍼포먼스 훈련. 각종 행사와 대회에서 활동합니다.'}],
   master:{name:'',title:'국가대표마스터태권도장 관장',desc:'아이의 성향과 수준을 살피며 기본부터 차근차근 지도합니다.',badges:['태권도 9단','국가대표 출신','지도자 자격 보유','세계태권도 지도관 경북지우회','유치부·초등부 전문 지도']},
@@ -1109,11 +1114,14 @@ function renderHero(){
 }
 function renderStrengths(){
   const source=ld('strengths')||[];
-  const find=(keyword,fallback)=>source.find(x=>String(x.title||'').includes(keyword))||fallback;
+  const getDesc=(keyword,fallback)=>{
+    const item=source.find(x=>String(x.title||'').includes(keyword));
+    return item?.desc||fallback;
+  };
   const data=[
-    find('지도',{title:'체계적인 수련',desc:'유치부부터 초등부까지 아이의 연령과 수준을 고려해 기초 체력, 예절, 품새를 단계적으로 지도합니다.'}),
-    find('차량',{title:'안전한 등하원',desc:'산동 지역 학교와 주요 아파트를 중심으로 차량을 운행합니다.'}),
-    find('돌봄',{title:'수련 전후 돌봄',desc:'학교 수업이 끝난 뒤 수련 전후로 안전하게 머물 수 있도록 생활지도와 돌봄을 함께 운영합니다.'})
+    {title:'체계적인 수련',desc:getDesc('지도','유치부부터 초등부까지 아이의 연령과 수준을 고려해 기초 체력, 예절과 태권도 기본기를 단계적으로 지도합니다.')},
+    {title:'안전한 등하원',desc:getDesc('차량','산동 지역 학교와 주요 아파트를 중심으로 안전하게 차량을 운행합니다.')},
+    {title:'수련 전후 돌봄',desc:getDesc('돌봄','학교 수업이 끝난 뒤 수련 전후로 안전하게 머물 수 있도록 생활지도와 돌봄을 함께 운영합니다.')}
   ];
   document.getElementById('strengthsGrid').innerHTML=data.map((item,i)=>
     '<div class="strength-card" data-index="0'+(i+1)+'"><h3>'+esc(item.title)+'</h3><p>'+esc(item.desc)+'</p></div>'
