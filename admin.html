@@ -331,7 +331,7 @@ textarea { min-height: 80px; }
       <div class="nav-group-label">콘텐츠</div>
       <div class="nav-item" onclick="showPage('strengths',this)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
-        <span>6가지 강점</span>
+        <span>세 가지 기준</span>
       </div>
       <div class="nav-item" onclick="showPage('programs',this)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
@@ -359,7 +359,7 @@ textarea { min-height: 80px; }
       </div>
       <div class="nav-item" onclick="showPage('blog',this)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
-        <span>블로그</span>
+        <span>블로그 글(사용 안 함)</span>
       </div>
       <div class="nav-group-label">설정</div>
       <div class="nav-item" onclick="showPage('sections',this)">
@@ -581,13 +581,13 @@ textarea { min-height: 80px; }
     <!-- ③ 6가지 강점 -->
     <div id="page-strengths" class="page" style="display:none">
       <div class="page-header">
-        <h1>6가지 강점</h1>
-        <p>도장의 핵심 강점 카드를 수정합니다.</p>
+        <h1>세 가지 기준</h1>
+        <p>메인 화면의 세 가지 기준 사진과 설명을 수정합니다.</p>
       </div>
       <div class="card">
-        <div class="card-title">강점 카드 편집</div>
+        <div class="card-title">세 가지 기준 편집</div>
         <div id="strengthsList"></div>
-        <button class="add-row-btn" onclick="addStrength()">+ 강점 카드 추가</button>
+        
         <div class="save-bar">
           <span class="save-msg" id="msg-strengths">✓ 저장되었습니다</span>
           <button class="btn btn-primary" onclick="saveStrengths()">저장</button>
@@ -864,21 +864,15 @@ const DEFAULTS = {
     closed: '일요일 · 공휴일 휴관', ceo: '', brn: ''
   },
   hero: {
-    badge: '구미 산동 최고의 태권도장',
-    line1: '다양한 경험, 경험에서 오는 자신감',
+    badge: '구미 산동 유치부·초등부 태권도',
+    line1: '바르게 배우고,\n안전하게 성장합니다.',
     sub: '',
-    desc: '규율과 자신감, 체력을 한 번에 키웁니다.\n경북 구미시 산동 지역 차량운행 실시.',
-    stat1_num: '20+', stat1_label: '년 지도 경력',
-    stat2_num: '300+', stat2_label: '명 수료 졸업생',
-    stat3_num: '5세~', stat3_label: '수련 시작 가능'
+    desc: '체계적인 태권도 수련과 차량운행,\n수련 전후 돌봄을 함께 운영합니다.'
   },
   strengths: [
-    { icon: '🏆', title: '경험 있는 전문 지도', desc: '오랜 현장 지도 경험을 바탕으로 아이의 수준에 맞춰 안전하게 지도합니다.' },
-    { icon: '🚐', title: '차량 운행', desc: '산동 주요 아파트·학교를 중심으로 안전한 차량운행을 실시합니다.' },
-    { icon: '👦', title: '처음 시작하는 아이도 OK', desc: '낯가림이 있거나 운동이 처음인 아이도 단계별로 적응할 수 있게 지도합니다.' },
-    { icon: '🥋', title: '체계적인 승급 시스템', desc: '정기 승급심사로 목표의식과 성취감을 키웁니다.' },
-    { icon: '💪', title: '체력·집중력·자신감', desc: '기초 체력, 집중력, 자기절제, 발표 자신감을 함께 키우는 수업을 지향합니다.' },
-    { icon: '🏅', title: '대회 참가 지원', desc: '원하는 학생은 각종 태권도 대회에 참가할 수 있도록 체계적으로 준비를 지원합니다.' }
+    { title: '체계적인 수련', desc: '유치부부터 초등부까지 아이의 연령과 수준을 고려해 기초 체력, 예절과 태권도 기본기를 단계적으로 지도합니다.' },
+    { title: '안전한 등하원', desc: '산동 지역 학교와 주요 아파트를 중심으로 안전하게 차량을 운행합니다.' },
+    { title: '수련 전후 돌봄', desc: '학교 수업이 끝난 뒤 수련 전후로 안전하게 머물 수 있도록 생활지도와 돌봄을 함께 운영합니다.' }
   ],
   programs: [
     { tag: '5세 ~ 7세', emoji: '🐥', title: '유치부', desc: '놀이와 기본 예절을 함께 배우며 기초 체력과 균형 감각을 키웁니다.' },
@@ -888,9 +882,15 @@ const DEFAULTS = {
   ],
   master: {
     name: '', title: '국가대표마스터태권도장 관장',
-    desc: '국가대표마스터태권도장 관장은 20년 이상의 현장 지도 경력을 보유하고 있습니다. 국가대표 선수 출신으로서의 경험을 바탕으로, 아이 한 명 한 명의 성장에 집중하는 교육 철학을 가지고 있습니다.',
-    badges: ['태권도 9단', '국가대표 출신', '지도자 자격 보유', '세계태권도 지도관 경북지우회', '20년+ 지도 경력']
+    desc: '아이의 연령과 성향을 살피며 기본기, 예절, 체력을 균형 있게 지도합니다. 한 명 한 명이 안전하게 배우고 자신감을 키울 수 있는 수련 환경을 중요하게 생각합니다.',
+    badges: ['태권도 9단', '국가대표 출신', '지도자 자격 보유', '세계태권도 지도관 경북지우회']
   },
+  facility: [
+    {icon:'',label:'넓은 수련 공간'},
+    {icon:'',label:'청결하게 관리하는 공간'},
+    {icon:'',label:'안전한 지도 환경'},
+    {icon:'',label:'차량 운행'}
+  ],
   van: [
     { type: '아파트', name: 'OO아파트' },
     { type: '아파트', name: 'OO아파트' },
@@ -913,7 +913,7 @@ const DEFAULTS = {
   ],
   sections: {
     strengths: true, programs: true, master: true,
-    facility: true, van: true, faq: true,
+    facility: true, gallery: true, care: true, van: true, faq: true,
     blog: true, form: true, location: true
   }
 };
@@ -1201,7 +1201,7 @@ function removeProgImg(i){
 // ── FACILITY WITH IMAGE ──
 const FAC_DEFAULTS=[{icon:'🥋',label:'넓은 수련 공간'},{icon:'🧼',label:'청결 관리'},{icon:'👀',label:'안전한 지도 환경'},{icon:'🚐',label:'안전 차량 운행'}];
 function initFacility(){
-  let data;try{const raw=localStorage.getItem('tkd_facility');data=raw?JSON.parse(raw):FAC_DEFAULTS;}catch(e){data=FAC_DEFAULTS;}
+  const data=load('facility')||FAC_DEFAULTS;
   const container=document.getElementById('facilityList');
   if(!container)return;
   container.innerHTML='';
@@ -1268,14 +1268,14 @@ function removeFacImg(i){
   if(!confirm('이미지를 삭제하시겠습니까?'))return;
   removeImgData('facility_'+i);
   const area=document.getElementById('facImgArea_'+i);
-  let data;try{const raw=localStorage.getItem('tkd_facility');data=raw?JSON.parse(raw):FAC_DEFAULTS;}catch(e){data=FAC_DEFAULTS;}
+  const data=load('facility')||FAC_DEFAULTS;
   const icon=data[i]?data[i].icon:'📷';
   if(area){area.classList.remove('has-image');area.innerHTML='<div class="img-upload-placeholder"><div class="upload-icon">'+icon+'</div><p>클릭하여 시설 사진 업로드</p></div>';area.onclick=()=>document.getElementById('facImgInput_'+i).click();}
 }
 function saveFacility(){
   const cards=document.querySelectorAll('#facilityList .card');
   const data=Array.from(cards).map(el=>({icon:el.querySelector('.fac-icon').value,label:el.querySelector('.fac-label').value}));
-  localStorage.setItem('tkd_facility',JSON.stringify(data));showMsg('msg-facility');
+  save('facility',data);showMsg('msg-facility');
 }
 
 // ── GALLERY ──
@@ -1351,56 +1351,80 @@ function saveBasic(group) {
 // ── HERO ──
 function initHero() {
   const d = load('hero');
-  ['badge','line1','desc','stat1_num','stat1_label','stat2_num','stat2_label','stat3_num','stat3_label'].forEach(k => { const el = document.getElementById('h_' + k); if (el) el.value = d[k] || ''; });
+  ['badge','line1','desc'].forEach(k => {
+    const el = document.getElementById('h_' + k);
+    if (el) el.value = d[k] || '';
+  });
   const heroBg = loadImg('hero_bg');
-  if (heroBg) { const area=document.getElementById('heroBgArea'); if(area){area.classList.add('has-image');area.innerHTML='<img src="'+heroBg+'" alt="배경">';area.onclick=null;} }
+  if (heroBg) {
+    const area=document.getElementById('heroBgArea');
+    if(area){area.classList.add('has-image');area.innerHTML='<img src="'+heroBg+'" alt="배경">';area.onclick=null;}
+  }
 }
 function saveHero(group) {
   const d = load('hero');
-  if (group === 'text') {
-    ['badge','line1','desc'].forEach(k => d[k] = v('h_' + k));
-    d.sub = '';
-  }
-  if (group === 'stats') {
-    ['stat1_num','stat1_label','stat2_num','stat2_label','stat3_num','stat3_label']
-      .forEach(k => d[k] = v('h_' + k));
-  }
-  save('hero', d); showMsg('msg-hero-' + group);
+  ['badge','line1','desc'].forEach(k => d[k] = v('h_' + k));
+  d.sub = '';
+  delete d.stat1_num; delete d.stat1_label;
+  delete d.stat2_num; delete d.stat2_label;
+  delete d.stat3_num; delete d.stat3_label;
+  save('hero', d); showMsg('msg-hero-text');
 }
 
 // ── STRENGTHS ──
 function initStrengths() {
-  const data = load('strengths');
+  const defaults = DEFAULTS.strengths;
+  let saved = load('strengths') || [];
+  const data = [0,1,2].map(i => ({
+    title: saved[i]?.title || defaults[i].title,
+    desc: saved[i]?.desc || defaults[i].desc
+  }));
   const container = document.getElementById('strengthsList');
   container.innerHTML = '';
   data.forEach((item, i) => {
+    const imgData = loadImg('strength_img_' + i);
     container.innerHTML += `
     <div class="strength-item" id="str-${i}">
       <div class="strength-item-header">
-        <strong style="font-size:0.85rem;color:var(--navy)">강점 ${i+1}</strong>
-        <button class="btn btn-danger btn-sm" onclick="removeStrength(${i})">삭제</button>
+        <strong style="font-size:0.9rem;color:var(--navy)">기준 ${i+1}</strong>
       </div>
       <div class="grid-2">
-        <div class="field"><label>아이콘 (이모지)</label><input type="text" class="str-icon" value="${item.icon}" placeholder="🏆"></div>
-        <div class="field"><label>제목</label><input type="text" class="str-title" value="${item.title}"></div>
+        <div>
+          <label>대표 이미지</label>
+          <div class="img-upload-area ${imgData?'has-image':''}" id="strengthImgArea_${i}" onclick="document.getElementById('strengthImgInput_${i}').click()">
+            ${imgData?'<img src="'+imgData+'" alt="기준 이미지">':'<div class="img-upload-placeholder"><p>사진 업로드</p><small>가로형 사진 권장</small></div>'}
+          </div>
+          <input type="file" id="strengthImgInput_${i}" accept="image/*" class="file-input-hidden" onchange="handleStrengthImg(event,${i})">
+          <div class="img-actions">
+            <button class="btn btn-ghost btn-sm" type="button" onclick="document.getElementById('strengthImgInput_${i}').click()">사진 선택</button>
+            <button class="btn btn-danger btn-sm" type="button" onclick="removeStrengthImg(${i})">제거</button>
+          </div>
+        </div>
+        <div>
+          <div class="field"><label>제목</label><input type="text" class="str-title" value="${item.title}"></div>
+          <div class="field"><label>설명</label><textarea class="str-desc" rows="5">${item.desc}</textarea></div>
+        </div>
       </div>
-      <div class="field"><label>설명</label><textarea class="str-desc" rows="2">${item.desc}</textarea></div>
     </div>`;
   });
 }
-function addStrength() {
-  const data = load('strengths');
-  data.push({ icon: '⭐', title: '새 강점', desc: '설명을 입력하세요.' });
-  save('strengths', data); initStrengths();
+function handleStrengthImg(event,i){
+  const file=event.target.files&&event.target.files[0];
+  if(!file)return;
+  event.target.value='';
+  compressImage(file,900,0.72,async function(dataUrl){
+    const url=await saveImg('strength_img_'+i,dataUrl);
+    if(url) initStrengths();
+  });
 }
-function removeStrength(i) {
-  const data = load('strengths');
-  data.splice(i, 1); save('strengths', data); initStrengths();
+function removeStrengthImg(i){
+  if(!confirm('이 이미지를 삭제하시겠습니까?')) return;
+  removeImgData('strength_img_'+i);
+  setTimeout(initStrengths,150);
 }
 function saveStrengths() {
   const items = document.querySelectorAll('#strengthsList .strength-item');
-  const data = Array.from(items).map(el => ({
-    icon: el.querySelector('.str-icon').value,
+  const data = Array.from(items).slice(0,3).map(el => ({
     title: el.querySelector('.str-title').value,
     desc: el.querySelector('.str-desc').value
   }));
@@ -1581,9 +1605,9 @@ function deleteBlog(i) {
 
 // ── SECTIONS ──
 const SECTION_LABELS = {
-  strengths: '6가지 강점', programs: '교육과정', master: '관장 소개',
+  strengths: '세 가지 기준', programs: '교육과정', master: '관장 소개',
   facility: '시설 안내', van: '차량 운행', faq: '자주 묻는 질문',
-  blog: '태권도 이야기', location: '오시는 길'
+  gallery: '수련 갤러리', care: '수련 전후 돌봄', blog: '블로그 링크 영역', location: '오시는 길'
 };
 function initSections() {
   const data = load('sections');

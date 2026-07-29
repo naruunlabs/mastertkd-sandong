@@ -1183,9 +1183,9 @@ function renderStrengths(){
     {title:'수련 전후 돌봄',desc:getDesc('돌봄','학교 수업이 끝난 뒤 수련 전후로 안전하게 머물 수 있도록 생활지도와 돌봄을 함께 운영합니다.')}
   ];
   const strengthImages=[
-    loadImg('prog_img_1')||loadImg('gallery_0')||loadImg('facility_0')||loadImg('hero_bg'),
-    loadImg('facility_3')||loadImg('gallery_1')||loadImg('hero_bg'),
-    loadImg('facility_1')||loadImg('gallery_2')||loadImg('prog_img_0')||loadImg('hero_bg')
+    loadImg('strength_img_0')||loadImg('prog_img_1')||loadImg('gallery_0')||loadImg('facility_0')||loadImg('hero_bg'),
+    loadImg('strength_img_1')||loadImg('facility_3')||loadImg('gallery_1')||loadImg('hero_bg'),
+    loadImg('strength_img_2')||loadImg('facility_1')||loadImg('gallery_2')||loadImg('prog_img_0')||loadImg('hero_bg')
   ];
   document.getElementById('strengthsGrid').innerHTML=data.map((item,i)=>{
     const mediaStyle=strengthImages[i]?(' style="background-image:url('+strengthImages[i]+')"'):'';
@@ -1246,14 +1246,16 @@ function renderBlog(){
 function renderFacility(){
   const grid=document.getElementById('facilityGrid');
   if(!grid)return;
-  const labels=['넓은 수련 공간','청결하게 관리하는 공간','안전한 지도 환경','차량 운행'];
+  const defaults=['넓은 수련 공간','청결하게 관리하는 공간','안전한 지도 환경','차량 운행'];
+  const data=ld('facility')||[];
   let hasImage=false;
-  grid.innerHTML=labels.map((label,i)=>{
-    const imgData=loadImg('facility_'+i);
+  grid.innerHTML=defaults.map((fallback,idx)=>{
+    const label=data[idx]?.label||fallback;
+    const imgData=loadImg('facility_'+idx);
     if(imgData) hasImage=true;
     return '<div class="facility-card"><div class="facility-img '+(imgData?'':'no-image')+'">'+(imgData?'<img src="'+imgData+'" alt="'+esc(label)+'" style="width:100%;height:100%;object-fit:cover">':'')+'</div><div class="facility-label">'+esc(label)+'</div></div>';
   }).join('');
-  if(!hasImage) grid.classList.add('has-no-images');
+  grid.classList.toggle('has-no-images',!hasImage);
 }
 
 function renderGallery(){
@@ -1271,7 +1273,7 @@ function renderGallery(){
 
 function renderSections(){
   const s=ld('sections');
-  const map={strengths:'about',programs:'programs',master:'master',facility:'facility',van:'van',faq:'faq',blog:'blog',location:'location'};
+  const map={strengths:'about',programs:'programs',master:'master',facility:'facility',gallery:'gallery',care:'care',van:'van',faq:'faq',blog:'blog',location:'location'};
   Object.entries(map).forEach(([k,id])=>{
     const el=document.getElementById(id);
     if(el) el.style.display=(s[k]===false)?'none':'';
