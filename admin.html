@@ -398,8 +398,12 @@ textarea { min-height: 80px; }
         </div>
         <div class="grid-2">
           <div class="field">
-            <label>전화번호</label>
-            <input type="tel" id="b_phone" placeholder="054-000-0000">
+            <label>대표전화</label>
+            <input type="tel" id="b_phone" placeholder="054-471-6080">
+          </div>
+          <div class="field">
+            <label>상담전화</label>
+            <input type="tel" id="b_phone2" placeholder="010-2042-2546">
           </div>
           <div class="field">
             <label>카카오톡 채널 링크</label>
@@ -858,10 +862,10 @@ textarea { min-height: 80px; }
 const DEFAULTS = {
   pw: '1234', // 기본 비밀번호입니다. 실제 운영 시 서버 인증으로 교체하세요.
   basic: {
-    phone: '054-000-0000', kakao: '', address: '경북 구미시 산동면', mapurl: '',
-    weekday_start: '14:00', weekday_end: '21:00',
-    sat_start: '10:00', sat_end: '15:00',
-    closed: '일요일 · 공휴일 휴관', ceo: '', brn: ''
+    phone: '054-471-6080', phone2: '010-2042-2546', kakao: '', address: '경북 구미시 산동면', mapurl: '',
+    weekday_start: '11:30', weekday_end: '20:00',
+    sat_start: '10:00', sat_end: '12:00',
+    closed: '일요일 휴무', ceo: '', brn: ''
   },
   hero: {
     badge: '구미 산동 유치부·초등부 태권도',
@@ -1330,7 +1334,7 @@ function initAll() {
 // ── BASIC ──
 function initBasic() {
   const d = load('basic');
-  ['phone','kakao','address','mapurl','weekday_start','weekday_end',
+  ['phone','phone2','kakao','address','mapurl','weekday_start','weekday_end',
    'sat_start','sat_end','closed','ceo','brn'].forEach(k => {
     const el = document.getElementById('b_' + k);
     if (el) el.value = d[k] || '';
@@ -1338,7 +1342,7 @@ function initBasic() {
 }
 function saveBasic(group) {
   const d = load('basic');
-  if (group === 'contact') { d.phone = v('b_phone'); d.kakao = v('b_kakao'); }
+  if (group === 'contact') { d.phone = v('b_phone'); d.phone2 = v('b_phone2'); d.kakao = v('b_kakao'); }
   if (group === 'addr') { d.address = v('b_address'); d.mapurl = v('b_mapurl'); }
   if (group === 'hours') {
     d.weekday_start = v('b_weekday_start'); d.weekday_end = v('b_weekday_end');
