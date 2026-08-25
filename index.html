@@ -807,7 +807,11 @@ nav{background:rgba(252,251,248,.96);border-bottom:1px solid #DDD9D1;box-shadow:
       ],
       "url": "https://mastertkd-sandong.kr/",
       "description": "국가대표마스터태권도장은 경상북도 구미시 산동읍에 위치한 유치부·초등학생 중심 태권도장입니다. 기초 체력, 예절, 자신감, 품새와 태권도 수련을 지도하며 산동 지역 차량운행과 무료 체험수업 상담을 제공합니다.",
-      "telephone": "010-2042-2546",
+      "telephone": "054-471-6080",
+      "contactPoint": [
+        { "@type": "ContactPoint", "telephone": "054-471-6080", "contactType": "대표전화", "availableLanguage": "Korean" },
+        { "@type": "ContactPoint", "telephone": "010-2042-2546", "contactType": "상담전화", "availableLanguage": "Korean" }
+      ],
       "priceRange": "문의",
       "sport": "태권도",
       "currenciesAccepted": "KRW",
@@ -868,14 +872,14 @@ nav{background:rgba(252,251,248,.96);border-bottom:1px solid #DDD9D1;box-shadow:
             "Thursday",
             "Friday"
           ],
-          "opens": "14:00",
-          "closes": "21:00"
+          "opens": "11:30",
+          "closes": "20:00"
         },
         {
           "@type": "OpeningHoursSpecification",
           "dayOfWeek": "Saturday",
           "opens": "10:00",
-          "closes": "15:00"
+          "closes": "12:00"
         }
       ],
       "sameAs": ["https://blog.naver.com/master2546"]
@@ -923,7 +927,7 @@ nav{background:rgba(252,251,248,.96);border-bottom:1px solid #DDD9D1;box-shadow:
           "name": "수련 시간은 어떻게 되나요?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "기본 운영시간은 평일 오후 2시부터 오후 9시까지이며, 토요일은 오전 10시부터 오후 3시까지입니다. 일정은 변경될 수 있으므로 방문 전 확인을 권장합니다."
+            "text": "기본 운영시간은 평일 오전 11시 30분부터 오후 8시까지이며, 토요일은 오전 10시부터 낮 12시까지입니다. 일요일은 휴무입니다. 일정은 변경될 수 있으므로 방문 전 확인을 권장합니다."
           }
         },
         {
@@ -1131,7 +1135,7 @@ nav{background:rgba(252,251,248,.96);border-bottom:1px solid #DDD9D1;box-shadow:
 <footer>
   <div class="footer-inner">
     <div class="footer-logo">국가대표<span>마스터</span>태권도장</div>
-    <div class="footer-info" id="footerInfo">경북 구미시 산동면 | Tel. 054-000-0000<br>운영시간: 평일 14:00~21:00 / 토 10:00~15:00</div>
+    <div class="footer-info" id="footerInfo">경북 구미시 산동읍 신당2로 29 대호프라자 8층 | 대표전화 054-471-6080 · 상담전화 010-2042-2546<br>운영시간: 평일 11:30~20:00 / 토 10:00~12:00 / 일요일 휴무</div>
     <div class="footer-copy">© 2025 국가대표마스터태권도장. All rights reserved.</div>
   </div>
 </footer>
@@ -1154,14 +1158,14 @@ const db = getFirestore(app);
 
 // ── 기본값 ──
 const DEFS = {
-  basic:{phone:'010-2042-2546',kakao:'',address:'경북 구미시 산동읍 신당2로 29 대호프라자 8층',mapurl:'',weekday_start:'14:00',weekday_end:'21:00',sat_start:'10:00',sat_end:'15:00',closed:'일요일·공휴일 휴관',ceo:'',brn:''},
+  basic:{phone:'054-471-6080',phone2:'010-2042-2546',kakao:'',address:'경북 구미시 산동읍 신당2로 29 대호프라자 8층',mapurl:'',weekday_start:'11:30',weekday_end:'20:00',sat_start:'10:00',sat_end:'12:00',closed:'일요일 휴무',ceo:'',brn:''},
   hero:{badge:'구미 산동 유치부·초등부 태권도',line1:'',sub:'',desc:'체계적인 태권도 수련과 차량운행,\n수련 전후 돌봄을 함께 운영합니다.'},
   strengths:[{icon:'',title:'경험 있는 전문 지도',desc:'오랜 현장 지도 경험을 바탕으로 아이의 수준에 맞춰 안전하게 지도합니다.'},{icon:'',title:'차량 운행',desc:'산동 주요 아파트·학교를 중심으로 안전한 차량운행을 실시합니다.'},{icon:'',title:'방과 후 돌봄',desc:'수련 전후 아이들이 안전하게 머물 수 있도록 방과 후 돌봄과 생활지도를 함께 운영합니다.'},{icon:'',title:'처음 시작하는 아이도 OK',desc:'낯가림이 있거나 운동이 처음인 아이도 단계별로 적응할 수 있게 지도합니다.'},{icon:'',title:'체계적인 승급 시스템',desc:'정기 승급심사로 목표의식과 성취감을 키웁니다.'},{icon:'',title:'체력·집중력·자신감',desc:'기초 체력, 집중력, 자기절제, 발표 자신감을 함께 키우는 수업을 지향합니다.'},{icon:'',title:'대회 참가 지원',desc:'각종 태권도 대회 참가를 체계적으로 지원합니다.'}],
   programs:[{tag:'5세 ~ 7세',emoji:'',title:'유치부',desc:'놀이와 기본 예절을 함께 배우며 기초 체력과 균형 감각을 키웁니다.'},{tag:'초등 1 ~ 6학년',emoji:'',title:'초등부',desc:'태권도 기본기와 품새, 체력, 집중력, 자신감을 균형 있게 기릅니다.'},{tag:'중·고등학교',emoji:'',title:'중고등부',desc:'체력 관리와 심화 기술 교육. 단증 취득 및 대회 준비.'},{tag:'별도 모집',emoji:'',title:'시범단',desc:'전문 퍼포먼스 훈련. 각종 행사와 대회에서 활동합니다.'}],
   master:{name:'',title:'국가대표마스터태권도장 관장',desc:'아이의 성향과 수준을 살피며 기본부터 차근차근 지도합니다.',badges:['태권도 9단','국가대표 출신','지도자 자격 보유','세계태권도 지도관 경북지우회','유치부·초등부 전문 지도']},
   van:[{type:'아파트',name:'OO아파트'},{type:'아파트',name:'OO아파트'},{type:'학교',name:'OO초등학교'},{type:'유치원',name:'OO유치원'}],
   van_note:'운행 지역은 상담 시 추가 확인 가능합니다.',
-  faq:[{q:'몇 세부터 수련이 가능한가요?',a:'만 5세(유치부)부터 수련이 가능합니다.'},{q:'방과 후 돌봄도 가능한가요?',a:'네. 수련 전후로 안전하게 머물 수 있도록 방과 후 돌봄과 생활지도를 함께 운영합니다. 이용 가능 시간과 차량 노선은 상담 시 안내해드립니다.'},{q:'차량 운행을 하나요?',a:'네, 산동 지역 주요 아파트 및 초등학교를 중심으로 차량운행을 실시하고 있습니다.'},{q:'체험수업이 가능한가요?',a:'물론입니다! 무료 체험수업을 받아보실 수 있습니다.'},{q:'수련 시간은 어떻게 되나요?',a:'평일 오후 2시~9시, 토요일 오전 10시~오후 3시 운영합니다.'},{q:'승급심사는 얼마나 자주 있나요?',a:'분기별(약 3개월 간격)로 실시됩니다.'},{q:'여자 아이도 다닐 수 있나요?',a:'네, 남녀 구분 없이 모두 수련 가능합니다.'}],
+  faq:[{q:'몇 세부터 수련이 가능한가요?',a:'만 5세(유치부)부터 수련이 가능합니다.'},{q:'방과 후 돌봄도 가능한가요?',a:'네. 수련 전후로 안전하게 머물 수 있도록 방과 후 돌봄과 생활지도를 함께 운영합니다. 이용 가능 시간과 차량 노선은 상담 시 안내해드립니다.'},{q:'차량 운행을 하나요?',a:'네, 산동 지역 주요 아파트 및 초등학교를 중심으로 차량운행을 실시하고 있습니다.'},{q:'체험수업이 가능한가요?',a:'물론입니다! 무료 체험수업을 받아보실 수 있습니다.'},{q:'수련 시간은 어떻게 되나요?',a:'평일 오전 11시 30분~오후 8시, 토요일 오전 10시~낮 12시 운영하며 일요일은 휴무입니다.'},{q:'승급심사는 얼마나 자주 있나요?',a:'분기별(약 3개월 간격)로 실시됩니다.'},{q:'여자 아이도 다닐 수 있나요?',a:'네, 남녀 구분 없이 모두 수련 가능합니다.'}],
   blog:[{cat:'교육 가이드',title:'구미 산동 태권도장 선택 기준 5가지',summary:'좋은 태권도장을 고르는 핵심 포인트.',body:'',date:'2025.01'},{cat:'시작 나이',title:'태권도는 몇 살부터 시작하는 것이 좋을까?',summary:'발달 단계별로 알아보는 태권도 시작 적령기.',body:'',date:'2025.01'},{cat:'성장 효과',title:'태권도가 자신감 향상에 도움이 되는 이유',summary:'반복 훈련과 승급심사가 만드는 자신감의 비밀.',body:'',date:'2025.01'}],
   sections:{strengths:true,programs:true,master:true,facility:true,van:true,faq:true,blog:true,location:true}
 };
@@ -1212,25 +1216,29 @@ function renderHeroBg(){
 
 function renderBasic(){
   const d=ld('basic');
-  const phone=d.phone||'전화 문의';
+  const phone=d.phone||'054-471-6080';
+  const phone2=d.phone2||'010-2042-2546';
+  const callPhone=phone2||phone;
   const kakao=d.kakao||'';
   // float buttons
   const fc=document.getElementById('floatCall');
-  fc.onclick=()=>{ if(d.phone) window.location.href=telHref(d.phone); };
+  fc.onclick=()=>{ if(callPhone) window.location.href=telHref(callPhone); };
   const fk=document.getElementById('floatKakao');
   fk.onclick=()=>{ if(kakao) window.open(kakao,'_blank'); else alert('카카오톡 링크 준비 중입니다.'); };
   // contact section
-  document.getElementById('contactCall').onclick=()=>{ if(d.phone) window.location.href=telHref(d.phone); };
+  document.getElementById('contactCall').onclick=()=>{ if(callPhone) window.location.href=telHref(callPhone); };
   document.getElementById('contactKakao').onclick=()=>{ if(kakao) window.open(kakao,'_blank'); else alert('카카오톡 링크 준비 중입니다.'); };
-  const ws=d.weekday_start||'14:00'; const we=d.weekday_end||'21:00';
-  const ss=d.sat_start||'10:00'; const se=d.sat_end||'15:00';
+  const ws=d.weekday_start||'11:30'; const we=d.weekday_end||'20:00';
+  const ss=d.sat_start||'10:00'; const se=d.sat_end||'12:00';
   document.getElementById('contactInfo').innerHTML=`
     <div class="contact-info-item"><div class="label">위치</div><div class="value">${esc(d.address||'경북 구미시 산동면')}</div></div>
     <div class="contact-info-item"><div class="label">평일 운영</div><div class="value">${esc(ws)} ~ ${esc(we)}</div></div>
     <div class="contact-info-item"><div class="label">토요일</div><div class="value">${esc(ss)} ~ ${esc(se)}</div></div>
+    <div class="contact-info-item"><div class="label">대표전화</div><div class="value">${esc(phone)}</div></div>
+    <div class="contact-info-item"><div class="label">상담전화</div><div class="value">${esc(phone2)}</div></div>
     <div class="contact-info-item"><div class="label">체험수업</div><div class="value">무료 체험 가능</div></div>`;
   // footer
-  let fi=`${esc(d.address||'경북 구미시 산동면')} | Tel. ${esc(phone)}<br>`;
+  let fi=`${esc(d.address||'경북 구미시 산동읍')} | 대표전화 ${esc(phone)} · 상담전화 ${esc(phone2)}<br>`;
   if(d.ceo) fi+=`대표: ${esc(d.ceo)} | `;
   if(d.brn) fi+=`사업자등록번호: ${esc(d.brn)}<br>`;
   fi+=`운영시간: 평일 ${esc(ws)}~${esc(we)} / 토 ${esc(ss)}~${esc(se)}`;
