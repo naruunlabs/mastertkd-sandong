@@ -761,6 +761,13 @@ nav{background:rgba(252,251,248,.96);border-bottom:1px solid #DDD9D1;box-shadow:
 .hero h1{color:#101820!important}.hero h1 .h1-small{color:#4E5960!important}.hero h1 .h1-big,.hero h1 .h1-big:last-child{color:#101820!important}
 .hero-desc{color:#4E5960}.btn-outline{color:#101820;border-color:rgba(16,24,32,.38)}.btn-outline:hover{border-color:#101820;background:rgba(16,24,32,.05)}
 .master-bg{background:#29485C}.van-bg{background:#35586C}.master-photo{background:#38596C}.van-item{background:rgba(16,24,32,.18)}
+
+/* Consistent floating actions and semantic Korean title wrapping */
+.keep-together{white-space:nowrap;}
+@media(min-width:769px){
+  .float-cta{align-items:stretch;}
+  .float-btn{width:184px;height:90px;box-sizing:border-box;justify-content:center;}
+}
 </style>
 <script type="application/ld+json">
 {
@@ -1001,7 +1008,7 @@ nav{background:rgba(252,251,248,.96);border-bottom:1px solid #DDD9D1;box-shadow:
 <section class="strengths-bg" id="about">
   <div class="section-inner">
     <p class="section-label">Our standard</p>
-    <h2 class="section-title">아이의 하루를 생각하는 세 가지 기준</h2>
+    <h2 class="section-title">아이의 하루를 생각하는 <span class="keep-together">세 가지 기준</span></h2>
     <p class="section-desc">태권도 수련의 본질은 지키고, 아이가 도장에 머무는 시간 전체를 안전하게 운영합니다.</p>
     <div class="strengths-grid" id="strengthsGrid"></div>
   </div>
@@ -1034,7 +1041,7 @@ nav{background:rgba(252,251,248,.96);border-bottom:1px solid #DDD9D1;box-shadow:
 <section id="facility">
   <div class="section-inner">
     <p class="section-label">Training space</p>
-    <h2 class="section-title">수련에 집중할 수 있는 안전한 공간</h2>
+    <h2 class="section-title">수련에 집중할 수 있는 <span class="keep-together">안전한 공간</span></h2>
     <p class="section-desc">실제 도장 사진과 수련 모습을 통해 공간을 확인하실 수 있습니다.</p>
     <div class="facility-grid" id="facilityGrid"></div>
   </div>
