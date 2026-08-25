@@ -768,6 +768,31 @@ nav{background:rgba(252,251,248,.96);border-bottom:1px solid #DDD9D1;box-shadow:
   .float-cta{align-items:stretch;}
   .float-btn{width:184px;height:90px;box-sizing:border-box;justify-content:center;}
 }
+
+/* Unified brand palette based on the admin interface */
+:root{
+  --red:#E11D38;--red-dark:#B80F27;--red-light:#FFF0F3;
+  --navy:#071A44;--navy-mid:#12306B;--navy-light:#EAF0F8;
+  --gold:#F0B429;--gold-light:#FFF7DB;
+  --white:#FFFFFF;--surface:#FFFFFF;--surface-soft:#F4F5F7;
+  --gray-50:#F4F5F7;--gray-100:#E5E7EB;--gray-300:#9CA3AF;
+  --gray-600:#6B7280;--gray-900:#111827;--text:#111827;--muted:#6B7280;
+  --line:#E5E7EB;--line-strong:#D1D5DB;
+}
+body{background:#FFFFFF;color:#111827;}
+nav{background:rgba(255,255,255,.96);border-bottom-color:#E5E7EB;}
+.hero{background-color:#071A44;}
+#about,#faq,#location{background:#F4F5F7;}
+#programs,#facility,#gallery{background:#FFFFFF;}
+#master{background:#071A44;}
+#van{background:#12306B;}
+#care{background:#FFF0F3;}
+#contact{background:#071A44;}
+footer{background:#071A44;}
+@media(min-width:769px){
+  .float-btn{width:92px;height:45px;padding:0 8px;font-size:13px;}
+  .float-cta{gap:6px;}
+}
 </style>
 <script type="application/ld+json">
 {
