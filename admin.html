@@ -70,9 +70,10 @@ a { text-decoration: none; color: inherit; }
 /* 로그인 계정 확인용 배너 (Firestore 규칙에 넣을 이메일을 알려줌) */
 .acct-banner {
   background: #EEF4FF; border: 1px solid #C7D9F7; border-radius: 10px;
-  padding: 0.85rem 1rem; margin-bottom: 1.25rem; font-size: 0.85rem; color: #1B3A6B;
-  display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;
+  padding: 0.85rem 1rem; margin-bottom: 1.5rem; font-size: 0.85rem; color: #1B3A6B;
+  display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;
 }
+.acct-banner .acct-label { font-weight: 700; white-space: nowrap; }
 .acct-banner code {
   background: var(--white); border: 1px solid #C7D9F7; border-radius: 6px;
   padding: 3px 8px; font-size: 0.85rem; user-select: all;
@@ -420,14 +421,15 @@ textarea { min-height: 80px; }
   </aside>
 
   <!-- MAIN -->
-  <!-- 로그인한 계정을 보여줍니다. 이 주소를 Firestore 규칙에 넣으세요. -->
-  <div class="acct-banner" id="acctBanner" style="display:none">
-    <span>로그인 계정</span>
-    <code id="acctEmail"></code>
-    <button onclick="copyAcctEmail()">복사</button>
-    <span id="acctCopied" style="display:none;color:#1A7F4B;font-weight:600">✓ 복사됨</span>
-  </div>
   <main class="main">
+
+    <!-- 로그인한 계정. 이 주소를 Firestore 규칙에 넣으세요. -->
+    <div class="acct-banner" id="acctBanner" style="display:none">
+      <span class="acct-label">로그인 계정</span>
+      <code id="acctEmail"></code>
+      <button onclick="copyAcctEmail()">복사</button>
+      <span id="acctCopied" style="display:none;color:#1A7F4B;font-weight:600">✓ 복사됨</span>
+    </div>
 
     <!-- ① 기본 정보 -->
     <div id="page-basic" class="page">
