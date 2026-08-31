@@ -51,6 +51,37 @@ a { text-decoration: none; color: inherit; }
 }
 .login-btn:hover { background: var(--navy-mid); }
 .login-err { font-size: 0.82rem; color: var(--red); margin-top: 0.5rem; display: none; }
+.login-divider {
+  display: flex; align-items: center; gap: 0.6rem;
+  margin: 1rem 0 0.85rem; color: var(--muted); font-size: 0.78rem;
+}
+.login-divider::before, .login-divider::after {
+  content: ''; flex: 1; height: 1px; background: var(--border);
+}
+.google-btn {
+  width: 100%; padding: 11px; background: var(--white); color: #3c4043;
+  border: 1.5px solid var(--border); border-radius: 8px; font-family: var(--font);
+  font-size: 0.92rem; font-weight: 600; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 0.55rem;
+  transition: background 0.2s, border-color 0.2s;
+}
+.google-btn:hover { background: #F7F8FA; border-color: #C6CAD1; }
+.google-btn:disabled { opacity: 0.6; cursor: default; }
+/* 로그인 계정 확인용 배너 (Firestore 규칙에 넣을 이메일을 알려줌) */
+.acct-banner {
+  background: #EEF4FF; border: 1px solid #C7D9F7; border-radius: 10px;
+  padding: 0.85rem 1rem; margin-bottom: 1.25rem; font-size: 0.85rem; color: #1B3A6B;
+  display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;
+}
+.acct-banner code {
+  background: var(--white); border: 1px solid #C7D9F7; border-radius: 6px;
+  padding: 3px 8px; font-size: 0.85rem; user-select: all;
+}
+.acct-banner button {
+  background: var(--navy); color: var(--white); border: none; border-radius: 6px;
+  padding: 5px 11px; font-family: var(--font); font-size: 0.78rem;
+  font-weight: 600; cursor: pointer;
+}
 
 /* ── LAYOUT ── */
 #adminApp { display: none; min-height: 100vh; }
@@ -289,7 +320,7 @@ textarea { min-height: 80px; }
 /* ── RESPONSIVE ── */
 @media (max-width: 900px) {
   :root { --sidebar: 60px; }
-  .nav-group-label, .nav-item span, .sidebar-logo, .logout-btn { display: none; }
+  .nav-group-label, .nav-item span, .sidebar-logo, .logout-btn, #loginUser { display: none; }
   .nav-item { justify-content: center; padding: 0.75rem; }
   .main { padding: 1.5rem 1rem; }
   .grid-2, .grid-3, .stat-grid { grid-template-columns: 1fr; }
@@ -303,9 +334,20 @@ textarea { min-height: 80px; }
   <div class="login-box">
     <div class="login-logo">국가대표마스터태권도장</div>
     <div class="login-title">관리자 로그인</div>
-    <input type="password" id="pwInput" placeholder="비밀번호를 입력하세요" onkeydown="if(event.key==='Enter')doLogin()">
-    <button class="login-btn" onclick="doLogin()">로그인</button>
-    <div class="login-err" id="loginErr">비밀번호가 올바르지 않습니다.</div>
+    <input type="email" id="emailInput" placeholder="이메일" autocomplete="username" onkeydown="if(event.key==='Enter')document.getElementById('pwInput').focus()">
+    <input type="password" id="pwInput" placeholder="비밀번호" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="login-btn" id="loginBtn" onclick="doLogin()">로그인</button>
+    <div class="login-divider"><span>또는</span></div>
+    <button class="google-btn" id="googleBtn" onclick="doGoogleLogin()">
+      <svg viewBox="0 0 48 48" width="18" height="18" aria-hidden="true">
+        <path fill="#4285F4" d="M45.1 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h11.8c-.5 2.7-2 5-4.3 6.6v5.5h7c4.1-3.8 6.6-9.4 6.6-16.1z"/>
+        <path fill="#34A853" d="M24 46c5.8 0 10.7-1.9 14.3-5.2l-7-5.5c-1.9 1.3-4.4 2.1-7.3 2.1-5.6 0-10.4-3.8-12.1-8.9H4.7v5.6C8.3 41.3 15.6 46 24 46z"/>
+        <path fill="#FBBC05" d="M11.9 28.5c-.4-1.3-.7-2.7-.7-4.5s.3-3.2.7-4.5v-5.6H4.7C3.1 17.1 2.2 20.4 2.2 24s.9 6.9 2.5 10.1l7.2-5.6z"/>
+        <path fill="#EA4335" d="M24 9.5c3.2 0 6 1.1 8.2 3.2l6.2-6.2C34.7 3 29.8 1 24 1 15.6 1 8.3 5.7 4.7 13.9l7.2 5.6C13.6 13.3 18.4 9.5 24 9.5z"/>
+      </svg>
+      <span>Google 계정으로 로그인</span>
+    </button>
+    <div class="login-err" id="loginErr">이메일 또는 비밀번호가 올바르지 않습니다.</div>
     
   </div>
 </div>
@@ -372,11 +414,19 @@ textarea { min-height: 80px; }
       </div>
     </nav>
     <div class="sidebar-logout">
+      <div id="loginUser" style="font-size:0.72rem;color:rgba(255,255,255,0.45);padding:0 0 0.5rem;word-break:break-all;text-align:center"></div>
       <button class="logout-btn" onclick="doLogout()">로그아웃</button>
     </div>
   </aside>
 
   <!-- MAIN -->
+  <!-- 로그인한 계정을 보여줍니다. 이 주소를 Firestore 규칙에 넣으세요. -->
+  <div class="acct-banner" id="acctBanner" style="display:none">
+    <span>로그인 계정</span>
+    <code id="acctEmail"></code>
+    <button onclick="copyAcctEmail()">복사</button>
+    <span id="acctCopied" style="display:none;color:#1A7F4B;font-weight:600">✓ 복사됨</span>
+  </div>
   <main class="main">
 
     <!-- ① 기본 정보 -->
@@ -398,12 +448,8 @@ textarea { min-height: 80px; }
         </div>
         <div class="grid-2">
           <div class="field">
-            <label>대표전화</label>
-            <input type="tel" id="b_phone" placeholder="054-471-6080">
-          </div>
-          <div class="field">
-            <label>상담전화</label>
-            <input type="tel" id="b_phone2" placeholder="010-2042-2546">
+            <label>전화번호</label>
+            <input type="tel" id="b_phone" placeholder="054-000-0000">
           </div>
           <div class="field">
             <label>카카오톡 채널 링크</label>
@@ -499,14 +545,14 @@ textarea { min-height: 80px; }
       </div>
 
       <div class="card">
-        <div class="card-title">🖼️ 배경 이미지</div>
+        <div class="card-title">배경 이미지</div>
         <div class="notice info">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
           <div>배경 이미지를 올리면 그라데이션 위에 반투명하게 깔립니다. 어두운 실내 사진이 잘 어울립니다. (권장: 1920×1080, JPG)</div>
         </div>
         <div class="img-upload-area" id="heroBgArea" onclick="document.getElementById('heroBgInput').click()">
           <div class="img-upload-placeholder">
-            <div class="upload-icon">🖼️</div>
+            <div class="upload-icon">이미지</div>
             <p><strong>클릭하여 배경 이미지 업로드</strong></p>
             <small>JPG, PNG · 최대 5MB · 가로 1920px 권장</small>
           </div>
@@ -607,7 +653,7 @@ textarea { min-height: 80px; }
       </div>
       <div class="notice info" style="margin-bottom:1rem">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        <div>이미지를 올리면 이모지 대신 사진이 표시됩니다. 이미지가 없으면 기존 이모지가 표시됩니다.</div>
+        <div>이미지를 올리면 홈페이지에 실제 사진이 표시됩니다. 이미지가 없으면 단색 배경이 표시됩니다.</div>
       </div>
       <div id="programsList"></div>
       <div class="save-bar" style="margin-top:0">
@@ -623,7 +669,7 @@ textarea { min-height: 80px; }
         <p>관장님 사진, 소개 문구, 자격 배지를 관리합니다.</p>
       </div>
       <div class="card">
-        <div class="card-title">📷 관장 사진</div>
+        <div class="card-title">관장 사진</div>
         <div class="notice info">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
           <div>세로로 긴 사진(3:4 비율)이 가장 잘 맞습니다. 정면을 바라보는 사진 권장.</div>
@@ -631,7 +677,7 @@ textarea { min-height: 80px; }
         <div style="max-width:280px">
           <div class="img-upload-area" id="masterPhotoArea" onclick="document.getElementById('masterPhotoInput').click()">
             <div class="img-upload-placeholder">
-              <div class="upload-icon">👤</div>
+              <div class="upload-icon">사진</div>
               <p><strong>관장님 사진 업로드</strong></p>
               <small>JPG, PNG · 세로형(3:4) 권장</small>
             </div>
@@ -685,7 +731,7 @@ textarea { min-height: 80px; }
       </div>
       <div class="notice info" style="margin-bottom:1rem">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        <div>사진을 올리면 이모지 대신 실제 시설 사진이 표시됩니다. 가로형(4:3) 사진이 잘 맞습니다.</div>
+        <div>사진을 올리면 홈페이지에 실제 시설 사진이 표시됩니다. 가로형(4:3) 사진이 잘 맞습니다.</div>
       </div>
       <div id="facilityList"></div>
       <div class="save-bar">
@@ -833,7 +879,7 @@ textarea { min-height: 80px; }
       </div>
       <div class="card" style="max-width:400px">
         <div class="card-title">비밀번호 변경</div>
-        <div class="notice">현재 비밀번호 기능은 입니다. 실제 배포 전에는 서버 인증 방식으로 교체해야 합니다.</div>
+        <div class="notice">Firebase 인증 계정의 비밀번호를 변경합니다. 6자 이상 입력해주세요.</div>
         <div class="field">
           <label>현재 비밀번호</label>
           <input type="password" id="pw_current">
@@ -860,12 +906,12 @@ textarea { min-height: 80px; }
 <script type="module">
 // ── DEFAULT DATA ──
 const DEFAULTS = {
-  pw: '1234', // 기본 비밀번호입니다. 실제 운영 시 서버 인증으로 교체하세요.
+  // 비밀번호는 Firebase Authentication이 관리합니다. 코드에 저장하지 않습니다.
   basic: {
-    phone: '054-471-6080', phone2: '010-2042-2546', kakao: '', address: '경북 구미시 산동면', mapurl: '',
-    weekday_start: '11:30', weekday_end: '20:00',
-    sat_start: '10:00', sat_end: '12:00',
-    closed: '일요일 휴무', ceo: '', brn: ''
+    phone: '054-000-0000', kakao: '', address: '경북 구미시 산동면', mapurl: '',
+    weekday_start: '14:00', weekday_end: '21:00',
+    sat_start: '10:00', sat_end: '15:00',
+    closed: '일요일 · 공휴일 휴관', ceo: '', brn: ''
   },
   hero: {
     badge: '구미 산동 유치부·초등부 태권도',
@@ -879,10 +925,10 @@ const DEFAULTS = {
     { title: '수련 전후 돌봄', desc: '학교 수업이 끝난 뒤 수련 전후로 안전하게 머물 수 있도록 생활지도와 돌봄을 함께 운영합니다.' }
   ],
   programs: [
-    { tag: '5세 ~ 7세', emoji: '🐥', title: '유치부', desc: '놀이와 기본 예절을 함께 배우며 기초 체력과 균형 감각을 키웁니다.' },
-    { tag: '초등 1 ~ 6학년', emoji: '⭐', title: '초등부', desc: '태권도 기본기와 품새, 체력, 집중력, 자신감을 균형 있게 기릅니다.' },
-    { tag: '중 · 고등학교', emoji: '🔥', title: '중고등부', desc: '체력 관리와 심화 기술 교육. 단증 취득 및 대회 준비를 지원합니다.' },
-    { tag: '별도 모집', emoji: '🎯', title: '시범단', desc: '각종 행사와 대회에서 활동하는 시범단. 전문적인 퍼포먼스를 훈련합니다.' }
+    { tag: '5세 ~ 7세', emoji: '', title: '유치부', desc: '놀이와 기본 예절을 함께 배우며 기초 체력과 균형 감각을 키웁니다.' },
+    { tag: '초등 1 ~ 6학년', emoji: '', title: '초등부', desc: '태권도 기본기와 품새, 체력, 집중력, 자신감을 균형 있게 기릅니다.' },
+    { tag: '중 · 고등학교', emoji: '', title: '중고등부', desc: '체력 관리와 심화 기술 교육. 단증 취득 및 대회 준비를 지원합니다.' },
+    { tag: '별도 모집', emoji: '', title: '시범단', desc: '각종 행사와 대회에서 활동하는 시범단. 전문적인 퍼포먼스를 훈련합니다.' }
   ],
   master: {
     name: '', title: '국가대표마스터태권도장 관장',
@@ -935,11 +981,19 @@ function load(key) {
 
 function save(key, val) {
   _fbCache[key] = val;
-  // Firestore에 비동기 저장
+  // Firestore에 비동기 저장 (비밀번호는 Firebase 인증이 관리하므로 저장하지 않음)
   const saveData = {};
-  Object.keys(_fbCache).forEach(k => { saveData[k] = _fbCache[k]; });
-  window._fbDb && window._fbSetDoc(window._fbDoc(window._fbDb, 'site', 'data'), saveData)
-    .catch(e => console.error('Firebase 저장 실패:', e));
+  Object.keys(_fbCache).forEach(k => { if (k !== 'pw') saveData[k] = _fbCache[k]; });
+  if (!window._fbDb) return true;
+  window._fbSetDoc(window._fbDoc(window._fbDb, 'site', 'data'), saveData)
+    .catch(e => {
+      console.error('Firebase 저장 실패:', e);
+      if (e && e.code === 'permission-denied') {
+        alert('저장 권한이 없습니다.\n로그아웃 후 다시 로그인해주세요.');
+      } else {
+        alert('저장에 실패했습니다. 인터넷 연결을 확인해주세요.');
+      }
+    });
   return true;
 }
 function showMsg(id) {
@@ -949,27 +1003,99 @@ function showMsg(id) {
   setTimeout(() => el.style.display = 'none', 2500);
 }
 
-// ── LOGIN ──
-function doLogin() {
+// ── LOGIN (Firebase Authentication) ──
+// 비밀번호 확인은 브라우저가 아니라 Firebase 서버에서 이루어집니다.
+function showLoginError(msg) {
+  const el = document.getElementById('loginErr');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+async function doLogin() {
+  const emailEl = document.getElementById('emailInput');
   const pwEl = document.getElementById('pwInput');
-  const pw = (pwEl.value || '').trim();
-  const stored = _fbCache['pw'] || localStorage.getItem('tkd_pw') || DEFAULTS.pw;
-  if (pw === stored) {
-    sessionStorage.setItem('tkd_admin_logged_in','1');
-    document.getElementById('loginScreen').style.display = 'none';
-    document.getElementById('adminApp').style.display = 'block';
+  const btn = document.getElementById('loginBtn');
+  const email = (emailEl.value || '').trim();
+  const pw = pwEl.value || '';
+
+  if (!email || !pw) {
+    showLoginError('이메일과 비밀번호를 모두 입력해주세요.');
+    return;
+  }
+  if (!window._fbAuth) {
+    showLoginError('인증 모듈을 불러오지 못했습니다. 새로고침 해주세요.');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = '로그인 중...';
+  try {
+    await window._fbSignIn(window._fbAuth, email, pw);
     document.getElementById('loginErr').style.display = 'none';
-    initAll();
-  } else {
-    document.getElementById('loginErr').style.display = 'block';
+    pwEl.value = '';
+    // 화면 전환은 onAuthStateChanged가 처리합니다.
+  } catch (e) {
+    console.warn('로그인 실패:', e && e.code);
+    const map = {
+      'auth/invalid-email': '이메일 형식이 올바르지 않습니다.',
+      'auth/user-disabled': '사용이 중지된 계정입니다.',
+      'auth/too-many-requests': '시도가 너무 많습니다. 잠시 후 다시 시도해주세요.',
+      'auth/network-request-failed': '네트워크 오류입니다. 인터넷 연결을 확인해주세요.'
+    };
+    showLoginError(map[e && e.code] || '이메일 또는 비밀번호가 올바르지 않습니다.');
     pwEl.focus();
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '로그인';
   }
 }
-function doLogout() {
-  sessionStorage.removeItem('tkd_admin_logged_in');
-  document.getElementById('loginScreen').style.display = 'flex';
-  document.getElementById('adminApp').style.display = 'none';
-  document.getElementById('pwInput').value = '';
+
+async function doGoogleLogin() {
+  const btn = document.getElementById('googleBtn');
+  if (!window._fbAuth) {
+    showLoginError('인증 모듈을 불러오지 못했습니다. 새로고침 해주세요.');
+    return;
+  }
+  btn.disabled = true;
+  try {
+    await window._fbGoogleSignIn(window._fbAuth, window._fbGoogleProvider());
+    document.getElementById('loginErr').style.display = 'none';
+    // 화면 전환은 onAuthStateChanged가 처리합니다.
+  } catch (e) {
+    console.warn('구글 로그인 실패:', e && e.code);
+    const map = {
+      'auth/popup-closed-by-user': '로그인 창이 닫혔습니다. 다시 시도해주세요.',
+      'auth/popup-blocked': '팝업이 차단되었습니다. 브라우저 팝업 허용 후 다시 시도해주세요.',
+      'auth/cancelled-popup-request': '',
+      'auth/unauthorized-domain': '이 주소는 Firebase 승인된 도메인에 등록되어 있지 않습니다.',
+      'auth/network-request-failed': '네트워크 오류입니다. 인터넷 연결을 확인해주세요.'
+    };
+    const msg = map[e && e.code];
+    if (msg !== '') showLoginError(msg || '구글 로그인에 실패했습니다.');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function copyAcctEmail() {
+  const txt = document.getElementById('acctEmail').textContent || '';
+  const done = () => {
+    const el = document.getElementById('acctCopied');
+    el.style.display = 'inline';
+    setTimeout(() => el.style.display = 'none', 2000);
+  };
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(txt).then(done).catch(() => alert(txt));
+  } else {
+    alert(txt);
+  }
+}
+
+async function doLogout() {
+  try {
+    if (window._fbAuth) await window._fbSignOut(window._fbAuth);
+  } catch (e) { console.warn('로그아웃 실패:', e); }
+  location.reload();
 }
 
 // ── NAV ──
@@ -1002,7 +1128,7 @@ function exportData(){
   const keys=['basic','hero','strengths','programs','master','van','van_note','faq','blog','sections'];
   const data={version:3,exportedAt:new Date().toISOString()};
   keys.forEach(k=>data[k]=load(k));
-  data.pw=localStorage.getItem('tkd_pw')||DEFAULTS.pw;
+  // 비밀번호는 Firebase 인증이 관리하므로 백업 파일에 포함하지 않습니다.
   // 이미지는 Storage URL만 저장 (base64 아님)
   data.imageUrls = Object.assign({}, _fbImgCache);
   const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
@@ -1016,7 +1142,7 @@ function importData(event){
     try{
       const data=JSON.parse(reader.result);
       ['basic','hero','strengths','programs','master','van','van_note','faq','blog','sections'].forEach(k=>{if(data[k]!==undefined)save(k,data[k]);});
-      if(data.pw)localStorage.setItem('tkd_pw',data.pw);
+      // 예전 백업에 비밀번호가 있어도 무시합니다.
       // 이미지 URL 복원 (Storage 파일은 이미 있으므로 URL만 복원)
       if(data.imageUrls){
         Object.assign(_fbImgCache, data.imageUrls);
@@ -1092,8 +1218,8 @@ function handleImgUpload(event,areaId,imgKey){
 }
 
 const IMG_PLACEHOLDERS={
-  'heroBgArea':'<div class="img-upload-placeholder"><div class="upload-icon">🖼️</div><p><strong>클릭하여 배경 이미지 업로드</strong></p><small>JPG, PNG · 최대 5MB · 가로 1920px 권장</small></div>',
-  'masterPhotoArea':'<div class="img-upload-placeholder"><div class="upload-icon">👤</div><p><strong>관장님 사진 업로드</strong></p><small>JPG, PNG · 세로형(3:4) 권장</small></div>'
+  'heroBgArea':'<div class="img-upload-placeholder"><div class="upload-icon">이미지</div><p><strong>클릭하여 배경 이미지 업로드</strong></p><small>JPG, PNG · 최대 5MB · 가로 1920px 권장</small></div>',
+  'masterPhotoArea':'<div class="img-upload-placeholder"><div class="upload-icon">사진</div><p><strong>관장님 사진 업로드</strong></p><small>JPG, PNG · 세로형(3:4) 권장</small></div>'
 };
 const IMG_INPUTS={'heroBgArea':'heroBgInput','masterPhotoArea':'masterPhotoInput'};
 function removeImg(areaId,imgKey,type){
@@ -1102,7 +1228,7 @@ function removeImg(areaId,imgKey,type){
   const area=document.getElementById(areaId);
   if(!area)return;
   area.classList.remove('has-image');
-  area.innerHTML=IMG_PLACEHOLDERS[areaId]||'<div class="img-upload-placeholder"><div class="upload-icon">📷</div><p>이미지 없음</p></div>';
+  area.innerHTML=IMG_PLACEHOLDERS[areaId]||'<div class="img-upload-placeholder"><div class="upload-icon">이미지</div><p>이미지 없음</p></div>';
   const inp=IMG_INPUTS[areaId];
   if(inp)area.onclick=()=>document.getElementById(inp).click();
 }
@@ -1119,7 +1245,7 @@ function initPrograms(){
 
     const titleDiv=document.createElement('div');
     titleDiv.className='card-title';
-    titleDiv.innerHTML='<span style="font-size:1.2rem">'+p.emoji+'</span> 과정 '+(i+1)+': '+p.title;
+    titleDiv.textContent='과정 '+(i+1)+': '+p.title;
     card.appendChild(titleDiv);
 
     const grid=document.createElement('div');
@@ -1143,7 +1269,7 @@ function initPrograms(){
       imgArea.appendChild(im);
     }else{
       imgArea.className='img-upload-area';
-      imgArea.innerHTML='<div class="img-upload-placeholder"><div class="upload-icon">'+p.emoji+'</div><p>클릭하여 이미지 업로드</p><small>없으면 이모지 표시</small></div>';
+      imgArea.innerHTML='<div class="img-upload-placeholder"><div class="upload-icon">이미지</div><p>클릭하여 이미지 업로드</p><small>없으면 단색 배경 표시</small></div>';
       imgArea.onclick=(function(idx){return function(){document.getElementById('progImgInput_'+idx).click();};})(i);
     }
     leftDiv.appendChild(imgArea);
@@ -1168,7 +1294,7 @@ function initPrograms(){
     // Right: text fields
     const rightDiv=document.createElement('div');
     rightDiv.innerHTML=
-      '<div class="field"><label>이모지 (이미지 없을 때)</label><input type="text" class="prog-emoji" value="'+p.emoji+'"></div>'+
+      '<input type="hidden" class="prog-emoji" value="">'+
       '<div class="field"><label>태그 (연령)</label><input type="text" class="prog-tag" value="'+p.tag+'"></div>'+
       '<div class="field"><label>과정명</label><input type="text" class="prog-title" value="'+p.title+'"></div>';
     grid.appendChild(rightDiv);
@@ -1198,12 +1324,11 @@ function removeProgImg(i){
   if(!confirm('이미지를 삭제하시겠습니까?'))return;
   removeImgData('prog_img_'+i);
   const area=document.getElementById('progImgArea_'+i);
-  const data=load('programs');const emoji=data[i]?data[i].emoji:'📷';
-  if(area){area.classList.remove('has-image');area.innerHTML='<div class="img-upload-placeholder"><div class="upload-icon">'+emoji+'</div><p>클릭하여 이미지 업로드</p><small>없으면 이모지 표시</small></div>';area.onclick=()=>document.getElementById('progImgInput_'+i).click();}
+  if(area){area.classList.remove('has-image');area.innerHTML='<div class="img-upload-placeholder"><div class="upload-icon">이미지</div><p>클릭하여 이미지 업로드</p><small>없으면 단색 배경 표시</small></div>';area.onclick=()=>document.getElementById('progImgInput_'+i).click();}
 }
 
 // ── FACILITY WITH IMAGE ──
-const FAC_DEFAULTS=[{icon:'🥋',label:'넓은 수련 공간'},{icon:'🧼',label:'청결 관리'},{icon:'👀',label:'안전한 지도 환경'},{icon:'🚐',label:'안전 차량 운행'}];
+const FAC_DEFAULTS=[{icon:'',label:'넓은 수련 공간'},{icon:'',label:'청결 관리'},{icon:'',label:'안전한 지도 환경'},{icon:'',label:'안전 차량 운행'}];
 function initFacility(){
   const data=load('facility')||FAC_DEFAULTS;
   const container=document.getElementById('facilityList');
@@ -1250,7 +1375,7 @@ function initFacility(){
 
     // Right: fields
     const rightDiv=document.createElement('div');
-    rightDiv.innerHTML='<div class="field"><label>이모지 (사진 없을 때)</label><input type="text" class="fac-icon" value="'+item.icon+'"></div><div class="field"><label>시설명</label><input type="text" class="fac-label" value="'+item.label+'"></div>';
+    rightDiv.innerHTML='<input type="hidden" class="fac-icon" value=""><div class="field"><label>시설명</label><input type="text" class="fac-label" value="'+item.label+'"></div>';
     grid.appendChild(rightDiv);
     card.appendChild(grid);
     container.appendChild(card);
@@ -1273,8 +1398,7 @@ function removeFacImg(i){
   removeImgData('facility_'+i);
   const area=document.getElementById('facImgArea_'+i);
   const data=load('facility')||FAC_DEFAULTS;
-  const icon=data[i]?data[i].icon:'📷';
-  if(area){area.classList.remove('has-image');area.innerHTML='<div class="img-upload-placeholder"><div class="upload-icon">'+icon+'</div><p>클릭하여 시설 사진 업로드</p></div>';area.onclick=()=>document.getElementById('facImgInput_'+i).click();}
+  if(area){area.classList.remove('has-image');area.innerHTML='<div class="img-upload-placeholder"><div class="upload-icon">이미지</div><p>클릭하여 시설 사진 업로드</p></div>';area.onclick=()=>document.getElementById('facImgInput_'+i).click();}
 }
 function saveFacility(){
   const cards=document.querySelectorAll('#facilityList .card');
@@ -1294,7 +1418,7 @@ function initGallery(){
     if(imgData){
       div.innerHTML='<img src="'+imgData+'" alt="갤러리 '+(i+1)+'"><button class="gallery-item-del" onclick="removeGalImg(event,'+i+')">✕</button>';
     }else{
-      div.innerHTML='<div class="gallery-item-placeholder">📷<span>클릭하여 추가</span></div>';
+      div.innerHTML='<div class="gallery-item-placeholder">사진<span>클릭하여 추가</span></div>';
       div.onclick=()=>document.getElementById('galInput_'+i).click();
     }
     const inp=document.createElement('input');
@@ -1321,7 +1445,7 @@ function removeGalImg(event,i){
   if(!confirm('이 사진을 삭제하시겠습니까?'))return;
   removeImgData('gallery_'+i);
   const div=document.getElementById('galItem_'+i);
-  if(div){div.className='gallery-editor-item';div.innerHTML='<div class="gallery-item-placeholder">📷<span>클릭하여 추가</span></div>';div.onclick=()=>document.getElementById('galInput_'+i).click();}
+  if(div){div.className='gallery-editor-item';div.innerHTML='<div class="gallery-item-placeholder">사진<span>클릭하여 추가</span></div>';div.onclick=()=>document.getElementById('galInput_'+i).click();}
   showMsg('msg-gallery');
 }
 
@@ -1334,7 +1458,7 @@ function initAll() {
 // ── BASIC ──
 function initBasic() {
   const d = load('basic');
-  ['phone','phone2','kakao','address','mapurl','weekday_start','weekday_end',
+  ['phone','kakao','address','mapurl','weekday_start','weekday_end',
    'sat_start','sat_end','closed','ceo','brn'].forEach(k => {
     const el = document.getElementById('b_' + k);
     if (el) el.value = d[k] || '';
@@ -1342,7 +1466,7 @@ function initBasic() {
 }
 function saveBasic(group) {
   const d = load('basic');
-  if (group === 'contact') { d.phone = v('b_phone'); d.phone2 = v('b_phone2'); d.kakao = v('b_kakao'); }
+  if (group === 'contact') { d.phone = v('b_phone'); d.kakao = v('b_kakao'); }
   if (group === 'addr') { d.address = v('b_address'); d.mapurl = v('b_mapurl'); }
   if (group === 'hours') {
     d.weekday_start = v('b_weekday_start'); d.weekday_end = v('b_weekday_end');
@@ -1633,21 +1757,47 @@ function saveSections() {
   save('sections', data); showMsg('msg-sections');
 }
 
-// ── PW ──
-function changePw() {
+// ── PW (Firebase Authentication) ──
+async function changePw() {
   const current = document.getElementById('pw_current').value;
   const nw = document.getElementById('pw_new').value;
   const conf = document.getElementById('pw_confirm').value;
-  const stored = _fbCache['pw'] || localStorage.getItem('tkd_pw') || DEFAULTS.pw;
   const err = document.getElementById('pw_err');
-  if (current !== stored) { err.textContent = '현재 비밀번호가 올바르지 않습니다.'; err.style.display = 'block'; return; }
-  if (!nw) { err.textContent = '새 비밀번호를 입력해주세요.'; err.style.display = 'block'; return; }
-  if (nw !== conf) { err.textContent = '새 비밀번호가 일치하지 않습니다.'; err.style.display = 'block'; return; }
-  _fbCache['pw'] = nw;
-  save('pw', nw);
-  err.style.display = 'none';
-  ['pw_current','pw_new','pw_confirm'].forEach(id => document.getElementById(id).value = '');
-  showMsg('msg-pw');
+  const fail = (m) => { err.textContent = m; err.style.display = 'block'; };
+
+  if (!current) return fail('현재 비밀번호를 입력해주세요.');
+  if (!nw) return fail('새 비밀번호를 입력해주세요.');
+  if (nw.length < 6) return fail('새 비밀번호는 6자 이상이어야 합니다.');
+  if (nw !== conf) return fail('새 비밀번호가 일치하지 않습니다.');
+
+  const user = window._fbAuth && window._fbAuth.currentUser;
+  if (!user) return fail('로그인 정보가 없습니다. 다시 로그인해주세요.');
+
+  const hasPassword = (user.providerData || []).some(p => p.providerId === 'password');
+  if (!hasPassword) {
+    return fail('구글 계정으로 로그인 중입니다. 비밀번호는 구글 계정 설정에서 변경해주세요.');
+  }
+
+  try {
+    // 보안을 위해 현재 비밀번호로 본인 확인을 먼저 합니다.
+    const cred = window._fbEmailCredential(user.email, current);
+    await window._fbReauth(user, cred);
+    await window._fbUpdatePassword(user, nw);
+    err.style.display = 'none';
+    ['pw_current','pw_new','pw_confirm'].forEach(id => document.getElementById(id).value = '');
+    showMsg('msg-pw');
+  } catch (e) {
+    console.warn('비밀번호 변경 실패:', e && e.code);
+    if (e && (e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential')) {
+      fail('현재 비밀번호가 올바르지 않습니다.');
+    } else if (e && e.code === 'auth/weak-password') {
+      fail('비밀번호가 너무 단순합니다. 6자 이상으로 입력해주세요.');
+    } else if (e && e.code === 'auth/requires-recent-login') {
+      fail('보안을 위해 다시 로그인한 뒤 변경해주세요.');
+    } else {
+      fail('변경에 실패했습니다. 잠시 후 다시 시도해주세요.');
+    }
+  }
 }
 
 // ── UTIL ──
@@ -1657,6 +1807,12 @@ function v(id) { return document.getElementById(id)?.value || ''; }
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { getStorage, ref, uploadString, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
+import {
+  getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged,
+  setPersistence, browserSessionPersistence,
+  EmailAuthProvider, reauthenticateWithCredential, updatePassword,
+  GoogleAuthProvider, signInWithPopup
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBU2sUZxyZBUYkwiqKdP7CnYkwZIsAFqUo",
@@ -1669,9 +1825,26 @@ const firebaseConfig = {
 const _app = initializeApp(firebaseConfig);
 const _db = getFirestore(_app);
 const _storage = getStorage(_app);
+const _auth = getAuth(_app);
+
+// 탭을 닫으면 로그인이 풀리도록 설정 (공용 PC 대비)
+setPersistence(_auth, browserSessionPersistence).catch(e => console.warn('세션 설정 실패:', e));
+
 window._fbDb = _db;
 window._fbDoc = doc;
 window._fbSetDoc = setDoc;
+window._fbAuth = _auth;
+window._fbSignIn = signInWithEmailAndPassword;
+window._fbSignOut = signOut;
+window._fbReauth = reauthenticateWithCredential;
+window._fbUpdatePassword = updatePassword;
+window._fbEmailCredential = EmailAuthProvider.credential;
+window._fbGoogleSignIn = signInWithPopup;
+window._fbGoogleProvider = () => {
+  const p = new GoogleAuthProvider();
+  p.setCustomParameters({ prompt: 'select_account' });
+  return p;
+};
 
 async function loadFirebaseData() {
   try {
@@ -1686,8 +1859,8 @@ async function loadFirebaseData() {
 
 // ── 전역 함수 등록 (onclick 핸들러용) ──
 Object.assign(window, {
-  doLogin, doLogout, showPage, switchTab, openPreview, exportData, importData,
-  saveBasic, saveHero, saveStrengths,
+  doLogin, doGoogleLogin, copyAcctEmail, doLogout, showPage, switchTab, openPreview, exportData, importData,
+  saveBasic, saveHero, saveStrengths, addStrength, removeStrength,
   savePrograms, removeProgImg, handleProgImg,
   saveMaster, addBadge, removeBadge, renderBadges,
   handleImgUpload, removeImg,
@@ -1699,13 +1872,35 @@ Object.assign(window, {
   saveSections, changePw, compressImage
 });
 
-window.addEventListener('DOMContentLoaded', async () => {
-  await loadFirebaseData();
-  if (sessionStorage.getItem('tkd_admin_logged_in') === '1') {
-    document.getElementById('loginScreen').style.display = 'none';
-    document.getElementById('adminApp').style.display = 'block';
-    initAll();
+// 인증 상태가 바뀔 때마다 화면을 전환합니다.
+// 로그인하지 않으면 관리 화면 자체가 열리지 않고, Firestore 규칙도 쓰기를 거부합니다.
+let _booted = false;
+onAuthStateChanged(_auth, async (user) => {
+  const loginScreen = document.getElementById('loginScreen');
+  const adminApp = document.getElementById('adminApp');
+
+  if (!user) {
+    loginScreen.style.display = 'flex';
+    adminApp.style.display = 'none';
+    _booted = false;
+    return;
   }
+
+  if (_booted) return;
+  _booted = true;
+
+  await loadFirebaseData();
+  loginScreen.style.display = 'none';
+  adminApp.style.display = 'block';
+  const who = document.getElementById('loginUser');
+  if (who) who.textContent = user.email || '';
+  const banner = document.getElementById('acctBanner');
+  const acct = document.getElementById('acctEmail');
+  if (banner && acct && user.email) {
+    acct.textContent = user.email;
+    banner.style.display = 'flex';
+  }
+  initAll();
 });
 </script>
 </body>
