@@ -651,11 +651,11 @@ textarea { min-height: 80px; }
     <div id="page-programs" class="page" style="display:none">
       <div class="page-header">
         <h1>교육과정</h1>
-        <p>수업별 대표 이미지와 분류 문구, 수업명, 소개 문구를 수정합니다.</p>
+        <p>각 수련 과정의 대표 이미지와 내용을 수정합니다.</p>
       </div>
       <div class="notice info" style="margin-bottom:1rem">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        <div>사진뿐 아니라 각 카드의 분류 문구, 수업명, 소개 문구도 아래에서 직접 수정할 수 있습니다.</div>
+        <div>이미지를 올리면 홈페이지에 실제 사진이 표시됩니다. 이미지가 없으면 단색 배경이 표시됩니다.</div>
       </div>
       <div id="programsList"></div>
       <div class="save-bar" style="margin-top:0">
@@ -927,10 +927,10 @@ const DEFAULTS = {
     { title: '수련 전후 돌봄', desc: '학교 수업이 끝난 뒤 수련 전후로 안전하게 머물 수 있도록 생활지도와 돌봄을 함께 운영합니다.' }
   ],
   programs: [
-    { tag: '신체 발달 · 놀이 활동', emoji: '', title: '유아체육', desc: '놀이형 움직임 수업으로 기초 체력과 균형 감각을 기르고, 자연스럽게 규칙과 협동을 배웁니다.' },
-    { tag: '기본기 · 품새 · 겨루기', emoji: '', title: '태권도', desc: '기본 동작부터 품새와 겨루기까지 단계적으로 익히며 예절, 집중력, 자신감을 함께 키웁니다.' },
-    { tag: '체력 · 협동 · 다양한 종목', emoji: '', title: '스포츠', desc: '공놀이, 민첩성 훈련, 팀 활동 등 다양한 스포츠를 경험하며 체력과 협동심을 기릅니다.' },
-    { tag: '체험 · 발표 · 특별 활동', emoji: '', title: '이벤트', desc: '계절 행사와 야외 체험, 발표 활동 등 즐거운 추억 속에서 도전하는 힘과 사회성을 키웁니다.' }
+    { tag: '5세 ~ 7세', emoji: '', title: '유치부', desc: '놀이와 기본 예절을 함께 배우며 기초 체력과 균형 감각을 키웁니다.' },
+    { tag: '초등 1 ~ 6학년', emoji: '', title: '초등부', desc: '태권도 기본기와 품새, 체력, 집중력, 자신감을 균형 있게 기릅니다.' },
+    { tag: '중 · 고등학교', emoji: '', title: '중고등부', desc: '체력 관리와 심화 기술 교육. 단증 취득 및 대회 준비를 지원합니다.' },
+    { tag: '별도 모집', emoji: '', title: '시범단', desc: '각종 행사와 대회에서 활동하는 시범단. 전문적인 퍼포먼스를 훈련합니다.' }
   ],
   master: {
     name: '', title: '국가대표마스터태권도장 관장',
@@ -977,16 +977,8 @@ let _fbCache = {};
 let _fbImgCache = {};
 
 function load(key) {
-  if (_fbCache[key] !== undefined) {
-    if (key === 'programs') return migrateLegacyPrograms(_fbCache[key]);
-    return _fbCache[key];
-  }
+  if (_fbCache[key] !== undefined) return _fbCache[key];
   return cloneDefault(key);
-}
-function migrateLegacyPrograms(programs) {
-  const legacy = ['유치부', '초등부', '중고등부', '시범단'];
-  if (!Array.isArray(programs) || programs.length !== 4 || !programs.every((p, i) => p && p.title === legacy[i])) return programs;
-  return cloneDefault('programs');
 }
 
 function save(key, val) {
@@ -1305,17 +1297,14 @@ function initPrograms(){
     const rightDiv=document.createElement('div');
     rightDiv.innerHTML=
       '<input type="hidden" class="prog-emoji" value="">'+
-      '<div class="field"><label>분류 문구</label><input type="text" class="prog-tag" placeholder="예) 기본기 · 품새 · 겨루기"></div>'+
-      '<div class="field"><label>수업명</label><input type="text" class="prog-title" placeholder="예) 태권도"></div>';
-    rightDiv.querySelector('.prog-tag').value=p.tag||'';
-    rightDiv.querySelector('.prog-title').value=p.title||'';
+      '<div class="field"><label>태그 (연령)</label><input type="text" class="prog-tag" value="'+p.tag+'"></div>'+
+      '<div class="field"><label>과정명</label><input type="text" class="prog-title" value="'+p.title+'"></div>';
     grid.appendChild(rightDiv);
     card.appendChild(grid);
 
     const descField=document.createElement('div');
     descField.className='field';
-    descField.innerHTML='<label>소개 문구</label><textarea class="prog-desc" rows="3" placeholder="이 수업에서 무엇을 배우고 경험하는지 입력하세요."></textarea>';
-    descField.querySelector('.prog-desc').value=p.desc||'';
+    descField.innerHTML='<label>설명</label><textarea class="prog-desc" rows="3">'+p.desc+'</textarea>';
     card.appendChild(descField);
 
     container.appendChild(card);
