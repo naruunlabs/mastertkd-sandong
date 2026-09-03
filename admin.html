@@ -1822,7 +1822,7 @@ import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/fireb
 import { getStorage, ref, uploadString, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
 import {
   getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged,
-  setPersistence, browserSessionPersistence,
+  setPersistence, browserLocalPersistence,
   EmailAuthProvider, reauthenticateWithCredential, updatePassword,
   GoogleAuthProvider, signInWithPopup
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
@@ -1840,8 +1840,9 @@ const _db = getFirestore(_app);
 const _storage = getStorage(_app);
 const _auth = getAuth(_app);
 
-// 탭을 닫으면 로그인이 풀리도록 설정 (공용 PC 대비)
-setPersistence(_auth, browserSessionPersistence).catch(e => console.warn('세션 설정 실패:', e));
+// 개인 기기에서는 브라우저를 닫아도 로그인 상태를 유지합니다.
+// 관리자 화면에서 로그아웃하거나 브라우저 데이터를 삭제하면 다시 로그인이 필요합니다.
+setPersistence(_auth, browserLocalPersistence).catch(e => console.warn('로그인 유지 설정 실패:', e));
 
 window._fbDb = _db;
 window._fbDoc = doc;
