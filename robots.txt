@@ -1,5 +1,16 @@
 User-agent: *
 Allow: /
 Disallow: /admin.html
+Disallow: /_backup_
+
+User-agent: OAI-SearchBot
+Allow: /
+Disallow: /admin.html
+Disallow: /_backup_
+
+User-agent: Claude-SearchBot
+Allow: /
+Disallow: /admin.html
+Disallow: /_backup_
 
 Sitemap: https://mastertkd-sandong.kr/sitemap.xml
