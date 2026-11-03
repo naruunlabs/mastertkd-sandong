@@ -39,3 +39,4 @@
 .schedule-table th,.schedule-table td{padding:17px 0;font-size:14px}
 .schedule-table tbody th{width:64px}}
 @media(prefers-reduced-motion:reduce){.float-btn{transition:none}}
+.button.tour{flex:1 0 100%;gap:12px;min-height:56px;background:var(--accent);color:white;font-size:15px}.button.tour:hover{background:#b64329}
