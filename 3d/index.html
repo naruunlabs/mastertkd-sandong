@@ -152,6 +152,9 @@ th { font-size: 13px; color: var(--ink-soft); }
 .game-card .row { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; padding-top: 6px; }
 .btn-main { border: 0; background: var(--hong); color: #fff; font-family: var(--font-display); font-size: 20px; padding: 12px 28px; }
 .btn-sub { border: 0; background: var(--dobok); color: var(--ink); font-size: 15px; font-weight: 700; padding: 12px 18px; }
+.shot-canvas { flex: 1; min-height: 0; width: 100%; display: block; margin-top: 10px; touch-action: none; }
+.shot-call { position: absolute; left: 0; right: 0; top: 24%; text-align: center; pointer-events: none; font-family: var(--font-display); font-size: 40px; color: var(--ink); text-shadow: 0 0 10px #fff, 0 0 4px #fff; }
+.shot-call.good { color: var(--hong); }
 .fail { position: fixed; inset: 0; z-index: 9; display: flex; align-items: center; justify-content: center; text-align: center; padding-block: 24px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); background: var(--ink); line-height: 1.7; }
 @media (prefers-reduced-motion: reduce) { .mit.hit { animation: none; } .hint { transition: none; } }
 </style>
@@ -203,6 +206,21 @@ th { font-size: 13px; color: var(--ink-soft); }
   </div>
   <div class="game-foot" id="gFoot"></div>
   <div class="game-card" id="gCard"></div>
+</div>
+
+<div class="game" id="shot" role="dialog" aria-labelledby="sCardTitle" hidden>
+  <div class="game-top">
+    <div class="game-stats">
+      <div><b id="sScore">0</b><span>점수</span></div>
+      <div><b id="sGoals">0</b><span>골</span></div>
+      <div><b id="sLeft">8</b><span>남은 기회</span></div>
+    </div>
+    <button class="close" id="sClose">그만하기</button>
+  </div>
+  <canvas class="shot-canvas" id="sCanvas"></canvas>
+  <div class="shot-call" id="sCall" aria-live="polite"></div>
+  <div class="game-foot" id="sFoot"></div>
+  <div class="game-card" id="sCard"></div>
 </div>
 
 <div class="fail" id="fail" hidden></div>
@@ -617,16 +635,40 @@ function boot() {
   solid(10.9, 13.2, 15.3, 13.9);
   box(15.3, 13.3, 18.5, 13.9, 0, 2.5, shelfMat, { n: photoTex('gwan1_shelf') });
   solid(15.3, 13.3, 18.5, 13.9);
+  const hoopGroup = new THREE.Group();
+  scene.add(hoopGroup);
   [19, 19.9, 20.8].forEach(x => {
-    box(x - .22, 13, x + .22, 13.6, 0, .08, 0x1f2024);
-    box(x - .03, 13.25, x + .03, 13.31, 0, 2.2, 0x1f2024);
-    box(x - .34, 13.18, x + .34, 13.24, 1.85, .55, 0x1f2024);
+    box(x - .22, 13, x + .22, 13.6, 0, .08, 0x1f2024, null, hoopGroup);
+    box(x - .03, 13.25, x + .03, 13.31, 0, 2.2, 0x1f2024, null, hoopGroup);
+    box(x - .34, 13.18, x + .34, 13.24, 1.85, .55, 0x1f2024, null, hoopGroup);
     const ring = new THREE.Mesh(new THREE.TorusGeometry(.17, .018, 6, 16), lam(0xc9302c));
     ring.rotation.x = Math.PI / 2;
     ring.position.set(x, 1.86, 13);
-    scene.add(ring);
+    hoopGroup.add(ring);
   });
   solid(18.7, 12.9, 21.2, 13.7);
+  // 에어바운스를 접어둔 뒤쪽 구석의 축구 골대
+  const goalGroup = new THREE.Group();
+  scene.add(goalGroup);
+  [7.7, 9.7].forEach(x => box(x - .03, 2.1, x + .03, 2.16, 0, 1.2, 0xf4f4f4, null, goalGroup));
+  box(7.67, 2.1, 9.73, 2.16, 1.2, .06, 0xf4f4f4, null, goalGroup);
+  const netTex = canvasTex(256, 128, (g, w, h) => {
+    g.clearRect(0, 0, w, h);
+    g.strokeStyle = 'rgba(40,44,52,.75)'; g.lineWidth = 2;
+    for (let x = 0; x <= w; x += 16) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, h); g.stroke(); }
+    for (let y = 0; y <= h; y += 16) { g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke(); }
+  });
+  const net = new THREE.Mesh(new THREE.PlaneGeometry(2, 1.2),
+    new THREE.MeshBasicMaterial({ map: netTex, transparent: true, depthWrite: false, side: THREE.DoubleSide }));
+  net.position.set(8.7, .6, 2.02);
+  goalGroup.add(net);
+  [[8.1, 2.5, 0xf7f7f4], [9.2, 2.65, 0x2c8a43]].forEach(([x, z, c]) => {
+    const b = new THREE.Mesh(new THREE.SphereGeometry(.13, 12, 10), lam(c));
+    b.position.set(x, .13, z);
+    b.castShadow = true;
+    goalGroup.add(b);
+  });
+  solid(7.5, 1.9, 9.9, 2.2);
   // 마스터 더미 (미트 격파 자리)
   const dummy = new THREE.Group();
   scene.add(dummy);
@@ -861,7 +903,11 @@ function boot() {
       label: pinLabel('안내문', 12.4, 3.2, 18.8, '#161f38'), open: () => openBoard(0) },
     { name: '미트 격파', action: '미트 격파 시작', stand: [9.75, 11.7], objs: [dummy],
       label: pinLabel('미트 격파', 9.75, 3.4, 12.75, '#b92a2c'), open: openGameIntro },
-    { name: '승급 단계', action: '승급 단계 보기', stand: [8.3, 12.6], objs: [boardMesh],
+    { name: '축구', action: '축구 시작', stand: [8.7, 3.3], objs: [goalGroup],
+      label: pinLabel('축구', 8.7, 2.7, 2.1, '#2c8a43'), open: () => openShot('soccer') },
+    { name: '농구', action: '농구 시작', stand: [19.9, 11.9], objs: [hoopGroup],
+      label: pinLabel('농구', 19.9, 3.2, 13, '#d9761f'), open: () => openShot('basket') },
+    { name: '승급 단계', noChip: true, action: '승급 단계 보기', stand: [8.3, 12.6], objs: [boardMesh],
       label: pinLabel('승급 단계', 7.3, 3.1, 13.2, '#1f3f94'), open: () => openBoard(2) }
   ];
   function addPlace(name, go) {
@@ -872,9 +918,9 @@ function boot() {
   }
   hotspots.forEach(h => {
     h.objs.concat(h.label).forEach(o => { o.userData.hotspot = h; clickable.push(o); });
-    addPlace(h.name, () => goToHotspot(h));
+    if (!h.noChip) addPlace(h.name, () => goToHotspot(h));
   });
-  [['1관', 12.8, 11.4], ['2관', 3.5, 7], ['휴게실', 5.5, 20.2], ['현관', 12.6, 17.2]].forEach(([n, x, z]) => {
+  [['1관', 12.8, 11.4], ['2관', 3.5, 7], ['휴게실', 5.5, 20.2]].forEach(([n, x, z]) => {
     addPlace(n, () => walkTo(x, z));
   });
   if (document.fonts && document.fonts.load) {
@@ -1036,8 +1082,9 @@ function boot() {
   const keys = new Set();
   const MOVE_KEYS = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
   addEventListener('keydown', e => {
-    if (e.key === 'Escape') { closeSheet(); if (!$('game').hidden) closeGame(); return; }
+    if (e.key === 'Escape') { closeSheet(); if (!$('game').hidden) closeGame(); if (!$('shot').hidden) closeShot(); return; }
     if (!$('game').hidden) return gameKey(e);
+    if (!$('shot').hidden) return;
     if (!$('veil').hidden || !$('intro').hidden) return;
     if (MOVE_KEYS.includes(e.code)) { keys.add(e.code); e.preventDefault(); dismissHint(); }
     if ((e.code === 'Enter' || e.code === 'Space') && nearSpot && document.activeElement === document.body) { e.preventDefault(); nearSpot.open(); }
@@ -1287,6 +1334,322 @@ function boot() {
     if (['ArrowRight', 'KeyJ', 'KeyL'].includes(e.code)) { e.preventDefault(); if (!e.repeat) judge('R', performance.now()); }
   }
 
+  // ---------- 축구·농구 ----------
+  // 게임 안 좌표: x 좌우, y 높이, z 앞쪽 거리(m). 공은 z=0에서 출발해 화면을 쓸어 올린 만큼 날아간다
+  const SHOTS = 8, GRAVITY = 9.8;
+  const SHOT_INFO = {
+    soccer: { title: '축구', help: '공을 위로 쓱 밀어서 차세요. 옆으로 밀면 그쪽으로, 길게 밀면 높게 날아가요. 골키퍼를 피해서 넣어보세요.', foot: '화면을 위로 쓸어서 슛!', r: .17, y0: .17 },
+    basket: { title: '농구', help: '공을 위로 쓱 밀어서 던지세요. 길게 밀수록 멀리 날아가요. 골대가 점점 멀어져요.', foot: '화면을 위로 쓸어서 슛!', r: .16, y0: 1.1 }
+  };
+  const GOAL = { z: 9, half: 2.4, h: 2.2 };
+  const RIM = { y: 2.4, r: .36 };
+  const HOOP_STEPS = [[3.5, 0], [3.5, 0], [4, 0], [4.5, -.7], [5, .7], [5, -1], [5.5, 1], [6, 0]];
+  const sc = $('sCanvas'), sg = sc.getContext('2d');
+  let shot = null, shotRaf = 0, shotW = 0, shotH = 0, shotF = 500, shotLast = 0;
+  function resizeShot() {
+    const r = sc.getBoundingClientRect(), dpr = Math.min(devicePixelRatio || 1, 2);
+    shotW = r.width; shotH = r.height;
+    sc.width = Math.round(shotW * dpr); sc.height = Math.round(shotH * dpr);
+    sg.setTransform(dpr, 0, 0, dpr, 0, 0);
+    shotF = Math.min(shotW * 1.4, shotH * .85);
+  }
+  addEventListener('resize', () => { if (!$('shot').hidden) resizeShot(); });
+  function project(x, y, z) {
+    const k = shotF / (z + 3.5);
+    return { x: shotW / 2 + x * k, y: shotH * .46 - (y - 1.6) * k, k };
+  }
+  function openShot(mode) {
+    keys.clear();
+    $('shot').hidden = false;
+    resizeShot();
+    const info = SHOT_INFO[mode], best = Number(store.get('dojang-best-' + mode)) || 0;
+    shot = { mode, state: 'intro', i: 0, score: 0, goals: 0, streak: 0, clock: 0 };
+    resetBall();
+    setShotCard(`<h2 id="sCardTitle">${info.title}</h2><p>${info.help}</p>
+      ${best ? `<p>내 최고 점수 ${best}점</p>` : ''}
+      <div class="row"><button class="btn-main" id="sStart">시작</button><button class="btn-sub" id="sBack">도장으로 돌아가기</button></div>`);
+    $('sStart').addEventListener('click', startShot);
+    $('sBack').addEventListener('click', closeShot);
+    $('sStart').focus();
+    shotLast = performance.now();
+    cancelAnimationFrame(shotRaf);
+    shotRaf = requestAnimationFrame(shotLoop);
+  }
+  function setShotCard(html) { const c = $('sCard'); c.innerHTML = html; c.hidden = false; }
+  function closeShot() {
+    cancelAnimationFrame(shotRaf);
+    shot = null;
+    $('shot').hidden = true;
+  }
+  $('sClose').addEventListener('click', closeShot);
+  function startShot() {
+    initAudio();
+    if (audio && audio.state === 'suspended') audio.resume();
+    Object.assign(shot, { state: 'aim', i: 0, score: 0, goals: 0, streak: 0 });
+    $('sCard').hidden = true;
+    resetBall();
+    updateShotStats();
+    setShotCall('');
+    $('sFoot').textContent = SHOT_INFO[shot.mode].foot;
+  }
+  function resetBall() {
+    const info = SHOT_INFO[shot.mode];
+    shot.ball = { x: 0, y: info.y0, z: 0, vx: 0, vy: 0, vz: 0, spin: 0 };
+    shot.flight = 0; shot.judged = false; shot.drag = null; shot.aim = null;
+    if (shot.mode === 'basket') {
+      const [z, x] = HOOP_STEPS[Math.min(shot.i, SHOTS - 1)];
+      shot.hoop = { x, z };
+    }
+  }
+  function updateShotStats() {
+    $('sScore').textContent = shot.score;
+    $('sGoals').textContent = shot.goals;
+    $('sLeft').textContent = SHOTS - shot.i;
+  }
+  function setShotCall(text, good) { const c = $('sCall'); c.textContent = text; c.className = 'shot-call' + (good ? ' good' : ''); }
+  // 화면을 쓸어 올린 길이와 방향을 목표 지점으로 바꾼다. 어린아이도 넣을 수 있게 농구는 근처면 골대로 보정한다
+  function aimFrom(dx, dy) {
+    const nw = Math.min(shotW, 700), nh = Math.min(shotH, 800), up = Math.max(0, -dy);
+    if (shot.mode === 'soccer') {
+      return { x: dx / (nw * .5) * 2.6, y: Math.max(.1, up / (nh * .45) * 3 - .1), z: GOAL.z };
+    }
+    const range = Math.min(10, Math.max(1, up / (nh * .55) * 9));
+    let x = dx / (nw * .5) * 2.6, z = range;
+    if (Math.abs(z - shot.hoop.z) < .55) z = shot.hoop.z;
+    if (Math.abs(x - shot.hoop.x) < .45) x = shot.hoop.x;
+    return { x, y: RIM.y, z };
+  }
+  function launch(aim) {
+    const b = shot.ball;
+    const T = shot.mode === 'soccer' ? .72 : .55 + aim.z * .085;
+    b.vx = aim.x / T;
+    b.vz = aim.z / T;
+    b.vy = (aim.y - b.y + .5 * GRAVITY * T * T) / T;
+    shot.aimZ = aim.z;
+    shot.state = 'fly';
+    shot.flight = 0;
+    thwack(150, .4);
+  }
+  const shotPoint = e => { const r = sc.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+  sc.addEventListener('pointerdown', e => {
+    if (!shot || shot.state !== 'aim') return;
+    try { sc.setPointerCapture(e.pointerId); } catch (err) {}
+    const p = shotPoint(e);
+    shot.drag = { sx: p.x, sy: p.y, x: p.x, y: p.y };
+  });
+  sc.addEventListener('pointermove', e => {
+    if (!shot || !shot.drag) return;
+    const p = shotPoint(e);
+    shot.drag.x = p.x; shot.drag.y = p.y;
+    const dy = p.y - shot.drag.sy;
+    shot.aim = dy < -20 ? aimFrom(p.x - shot.drag.sx, dy) : null;
+  });
+  function shotRelease(e) {
+    if (!shot || !shot.drag) return;
+    const p = shotPoint(e), dx = p.x - shot.drag.sx, dy = p.y - shot.drag.sy;
+    shot.drag = null; shot.aim = null;
+    if (e.type !== 'pointerup' || shot.state !== 'aim') return;
+    if (dy < -20) launch(aimFrom(dx, dy));
+    else setShotCall('위로 쓱 밀어보세요');
+  }
+  sc.addEventListener('pointerup', shotRelease);
+  sc.addEventListener('pointercancel', shotRelease);
+  function shotResult(scored, text) {
+    if (shot.judged) return;
+    shot.judged = true;
+    if (scored) {
+      shot.goals++;
+      shot.score += 100 + shot.streak * 20;
+      shot.streak++;
+      thwack(420, .35);
+    } else {
+      shot.streak = 0;
+    }
+    setShotCall(text, scored);
+    shot.i++;
+    shot.endAt = shot.flight + (scored ? 1 : .8);
+    updateShotStats();
+  }
+  function stepShot(dt) {
+    shot.clock += dt;
+    if (shot.state !== 'fly') return;
+    const b = shot.ball, px = b.y, pz = b.z, r = SHOT_INFO[shot.mode].r;
+    shot.flight += dt;
+    b.x += b.vx * dt; b.y += b.vy * dt; b.z += b.vz * dt;
+    b.vy -= GRAVITY * dt;
+    b.spin += b.vz * dt;
+    if (shot.mode === 'soccer') {
+      if (pz < GOAL.z && b.z >= GOAL.z && !shot.judged) {
+        const kx = keeperX(), inGoal = Math.abs(b.x) < GOAL.half && b.y < GOAL.h;
+        if (inGoal && Math.abs(b.x - kx) < .55 + r && b.y < 1.6) {
+          b.vz = -Math.abs(b.vz) * .3; b.vx *= .4;
+          shotResult(false, '골키퍼가 막았어요');
+        } else if (inGoal) {
+          b.vz *= .12; b.vx *= .2; b.vy *= .3;
+          shotResult(true, '골!');
+        } else {
+          shotResult(false, '빗나갔어요');
+        }
+      }
+    } else {
+      const h = shot.hoop, board = h.z + .3;
+      if (pz + r < board && b.z + r >= board && Math.abs(b.x - h.x) < .9 && b.y > RIM.y - .1 && b.y < RIM.y + 1.05) {
+        b.vz = -Math.abs(b.vz) * .5;
+        thwack(110, .25);
+      }
+      if (px >= RIM.y && b.y < RIM.y && !shot.judged) {
+        const d = Math.hypot(b.x - h.x, b.z - h.z);
+        if (d < RIM.r) {
+          b.vx *= .15; b.vz *= .15; b.vy *= .5;
+          shotResult(true, '골인!');
+        } else if (d < RIM.r + .22) {
+          b.vy = Math.abs(b.vy) * .35;
+          b.vx += (b.x - h.x) * 1.5; b.vz += (b.z - h.z) * 1.5;
+          thwack(200, .25);
+        }
+      }
+      if (!shot.judged && b.y < r + .02) {
+        const tip = shot.aimZ < h.z - .3 ? '조금 더 길게!' : shot.aimZ > h.z + .3 ? '조금 짧게!' : '옆으로 빗나갔어요';
+        shotResult(false, tip);
+      }
+    }
+    if (b.y < r) { b.y = r; b.vy = Math.abs(b.vy) * .5; b.vx *= .8; b.vz *= .8; }
+    if (!shot.judged && shot.flight > 3) shotResult(false, '빗나갔어요');
+    if (shot.judged && shot.flight > shot.endAt) {
+      if (shot.i >= SHOTS) return endShot();
+      shot.state = 'aim';
+      resetBall();
+      setShotCall('');
+    }
+  }
+  function endShot() {
+    const info = SHOT_INFO[shot.mode], best = Number(store.get('dojang-best-' + shot.mode)) || 0, isBest = shot.score > best;
+    if (isBest) store.set('dojang-best-' + shot.mode, shot.score);
+    const head = shot.goals >= 7 ? '최고예요!' : shot.goals >= 4 ? '잘했어요!' : '다시 도전해요!';
+    shot.state = 'end';
+    setShotCall('');
+    setShotCard(`<h2 id="sCardTitle">${head}</h2>
+      <p>${info.title} ${SHOTS}번 중 ${shot.goals}골 · ${shot.score}점${isBest && best ? ' · 최고 기록이에요' : ''}</p>
+      <div class="row"><button class="btn-main" id="sStart">다시 하기</button><button class="btn-sub" id="sBack">도장으로 돌아가기</button></div>`);
+    $('sStart').addEventListener('click', startShot);
+    $('sBack').addEventListener('click', closeShot);
+    $('sStart').focus();
+  }
+  function keeperX() {
+    const speed = 1.1 + shot.i * .28;
+    return Math.sin(shot.clock * speed) * 1.75;
+  }
+  function floorRect(x1, z1, x2, z2, color) {
+    const a = project(x1, 0, z2), b = project(x2, 0, z2), c = project(x2, 0, z1), d = project(x1, 0, z1);
+    sg.fillStyle = color;
+    sg.beginPath(); sg.moveTo(a.x, a.y); sg.lineTo(b.x, b.y); sg.lineTo(c.x, c.y); sg.lineTo(d.x, d.y); sg.closePath(); sg.fill();
+  }
+  function wallLine(x1, y1, x2, y2, z, width, color) {
+    const a = project(x1, y1, z), b = project(x2, y2, z);
+    sg.strokeStyle = color; sg.lineWidth = Math.max(1, width * a.k); sg.lineCap = 'round';
+    sg.beginPath(); sg.moveTo(a.x, a.y); sg.lineTo(b.x, b.y); sg.stroke();
+  }
+  function drawBall() {
+    const b = shot.ball, info = SHOT_INFO[shot.mode], p = project(b.x, b.y, b.z), rad = info.r * 1.25 * p.k;
+    const s = project(b.x, 0, b.z);
+    sg.fillStyle = 'rgba(0,0,0,.2)';
+    sg.beginPath(); sg.ellipse(s.x, s.y, rad, rad * .3, 0, 0, 7); sg.fill();
+    sg.save();
+    sg.translate(p.x, p.y); sg.rotate(b.spin * 2);
+    sg.beginPath(); sg.arc(0, 0, rad, 0, 7);
+    sg.fillStyle = shot.mode === 'soccer' ? '#f8f8f6' : '#e27a24';
+    sg.fill();
+    sg.strokeStyle = '#23252c'; sg.lineWidth = Math.max(1, rad * .09); sg.stroke();
+    if (shot.mode === 'soccer') {
+      sg.fillStyle = '#23252c';
+      sg.beginPath();
+      for (let i = 0; i < 5; i++) { const a = i / 5 * 6.283 - 1.57; sg.lineTo(Math.cos(a) * rad * .36, Math.sin(a) * rad * .36); }
+      sg.closePath(); sg.fill();
+      for (let i = 0; i < 5; i++) { const a = i / 5 * 6.283 - 1.57; sg.beginPath(); sg.moveTo(Math.cos(a) * rad * .36, Math.sin(a) * rad * .36); sg.lineTo(Math.cos(a) * rad, Math.sin(a) * rad); sg.stroke(); }
+    } else {
+      sg.beginPath(); sg.moveTo(-rad, 0); sg.lineTo(rad, 0); sg.moveTo(0, -rad); sg.lineTo(0, rad); sg.stroke();
+      sg.beginPath(); sg.arc(-rad * 1.1, 0, rad * .8, -.8, .8); sg.stroke();
+      sg.beginPath(); sg.arc(rad * 1.1, 0, rad * .8, 2.34, 3.94); sg.stroke();
+    }
+    sg.restore();
+  }
+  function drawKeeper() {
+    const x = keeperX(), z = GOAL.z - .1, head = project(x, 1.5, z), k = head.k;
+    const stretch = Math.abs(Math.cos(shot.clock * (1.1 + shot.i * .28))) * .1;
+    wallLine(x - .16, .05, x - .14, .75, z, .15, '#f4f6f5');
+    wallLine(x + .16, .05, x + .14, .75, z, .15, '#f4f6f5');
+    wallLine(x, .75, x, 1.28, z, .42, '#f4f6f5');
+    wallLine(x - .24, 1.22, x - .62 - stretch, 1.42, z, .11, '#f4f6f5');
+    wallLine(x + .24, 1.22, x + .62 + stretch, 1.42, z, .11, '#f4f6f5');
+    wallLine(x - .21, .8, x + .21, .8, z, .07, '#1a1a1f');
+    sg.fillStyle = '#f0c8a4'; sg.beginPath(); sg.arc(head.x, head.y, .17 * k, 0, 7); sg.fill();
+    sg.fillStyle = '#241f1e'; sg.beginPath(); sg.arc(head.x, head.y - .02 * k, .17 * k, Math.PI, 0); sg.fill();
+  }
+  function drawGoal(front) {
+    const z = GOAL.z, h = GOAL.h, w = GOAL.half;
+    if (!front) {
+      for (let x = -w; x <= w + .01; x += .4) wallLine(x, 0, x, h, z + .5, .012, 'rgba(60,64,72,.45)');
+      for (let y = 0; y <= h + .01; y += .4) wallLine(-w, y, w, y, z + .5, .012, 'rgba(60,64,72,.45)');
+      return;
+    }
+    wallLine(-w, 0, -w, h, z, .09, '#fdfdfd');
+    wallLine(w, 0, w, h, z, .09, '#fdfdfd');
+    wallLine(-w, h, w, h, z, .09, '#fdfdfd');
+  }
+  function drawHoop(front) {
+    const h = shot.hoop, bz = h.z + .3, cy = RIM.y;
+    if (!front) {
+      const a = project(h.x - .9, cy + 1.05, bz), b = project(h.x + .9, cy - .1, bz);
+      wallLine(h.x, 0, h.x, cy - .1, bz + .05, .1, '#26282e');
+      sg.fillStyle = '#1f2024'; sg.fillRect(a.x, a.y, b.x - a.x, b.y - a.y);
+      const c = project(h.x - .36, cy + .62, bz), d = project(h.x + .36, cy + .08, bz);
+      sg.strokeStyle = '#f7f7f4'; sg.lineWidth = 2; sg.strokeRect(c.x, c.y, d.x - c.x, d.y - c.y);
+      wallLine(h.x, cy + .06, h.x, cy, bz, .03, '#c9302c');
+    }
+    const p = project(h.x, cy, h.z), rx = RIM.r * p.k, ry = rx * .3;
+    if (front) {
+      sg.strokeStyle = 'rgba(255,255,255,.85)'; sg.lineWidth = 1;
+      for (let i = -3; i <= 3; i++) {
+        sg.beginPath(); sg.moveTo(p.x + i / 3 * rx, p.y); sg.lineTo(p.x + i / 3 * rx * .6, p.y + rx * .9); sg.stroke();
+      }
+    }
+    sg.strokeStyle = '#d6322a'; sg.lineWidth = Math.max(2, .035 * p.k);
+    sg.beginPath(); sg.ellipse(p.x, p.y, rx, ry, 0, front ? 0 : Math.PI, front ? Math.PI : 6.2832); sg.stroke();
+  }
+  function drawShot() {
+    const W = shotW, H = shotH, hor = project(0, 0, 13);
+    sg.clearRect(0, 0, W, H);
+    sg.fillStyle = '#e8e6de'; sg.fillRect(0, 0, W, hor.y);
+    sg.fillStyle = '#24262c'; sg.fillRect(0, hor.y - .85 * hor.k, W, .85 * hor.k);
+    sg.fillStyle = '#1f2024'; sg.fillRect(0, hor.y, W, H - hor.y);
+    floorRect(-4.4, -2.5, 4.4, 12.6, '#e3e5e1');
+    floorRect(-.3, -2.5, .3, 12.6, '#26282e');
+    if (shot.mode === 'soccer') {
+      drawGoal(false);
+      drawKeeper();
+      if (shot.ball.z < GOAL.z) { drawGoal(true); drawBall(); } else { drawBall(); drawGoal(true); }
+    } else {
+      const behind = shot.ball.z > shot.hoop.z + .02;
+      drawHoop(false);
+      if (behind) { drawBall(); drawHoop(true); } else { drawHoop(true); drawBall(); }
+    }
+    if (shot.aim) {
+      const t = project(shot.aim.x, shot.aim.y, shot.aim.z), b = project(shot.ball.x, shot.ball.y, shot.ball.z);
+      sg.strokeStyle = 'rgba(185,42,44,.7)'; sg.lineWidth = 3; sg.setLineDash([8, 8]);
+      sg.beginPath(); sg.moveTo(b.x, b.y); sg.lineTo(t.x, t.y); sg.stroke();
+      sg.setLineDash([]);
+      sg.beginPath(); sg.arc(t.x, t.y, 9, 0, 7); sg.stroke();
+    }
+  }
+  function shotLoop(now) {
+    if (!shot) return;
+    stepShot(Math.min(.05, (now - shotLast) / 1000));
+    shotLast = now;
+    if (!shot) return;
+    drawShot();
+    shotRaf = requestAnimationFrame(shotLoop);
+  }
+
   // ---------- 벽 투명 처리 ----------
   function segHitsBox(a, b, min, max) {
     let t0 = 0, t1 = 1;
@@ -1332,7 +1695,7 @@ function boot() {
     requestAnimationFrame(frame);
     const dt = Math.min(.1, (now - last) / 1000);
     last = now;
-    if (!$('game').hidden || !$('intro').hidden) return; // 게임과 시작 화면에서는 3D 그리기를 쉰다
+    if (!$('game').hidden || !$('shot').hidden || !$('intro').hidden) return; // 게임과 시작 화면에서는 3D 그리기를 쉰다
     clock += dt;
     let mx = 0, mz = 0;
     if (keys.size && $('veil').hidden) {
