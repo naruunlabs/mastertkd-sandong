@@ -39,6 +39,8 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
 .brand { display: flex; align-items: center; gap: 8px; min-width: 0; font-family: var(--font-display); font-size: 21px; line-height: 1.15; text-shadow: 0 1px 6px rgba(0,0,0,.55); }
 .brand img { height: 40px; width: auto; flex: none; }
 .intro img { width: 92px; height: auto; align-self: center; }
+.hud-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex: none; }
+.home-link { pointer-events: auto; background: rgba(22,31,56,.86); color: var(--dobok); font-size: 13px; padding: 4px 10px; text-decoration: none; }
 .where { font-family: var(--font-display); font-size: 15px; background: var(--dobok); color: var(--ink); padding: 5px 12px; white-space: nowrap; }
 .hint {
   position: fixed; z-index: 2; pointer-events: none; left: 50%; transform: translateX(-50%);
@@ -60,20 +62,6 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
 .places { pointer-events: auto; display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; }
 .places button { border: 0; background: var(--dobok); color: var(--ink); padding: 8px 11px; font-size: 14px; font-weight: 700; }
 .places button:hover { background: #fff; }
-
-.intro {
-  position: fixed; inset: 0; z-index: 7; display: flex; flex-direction: column; justify-content: flex-end; gap: 10px;
-  background: var(--ink) url("assets/photos/00.jpg") center / cover no-repeat;
-  padding-block: 24px calc(32px + env(safe-area-inset-bottom, 0px));
-  padding-left: max(16px, env(safe-area-inset-left, 0px));
-  padding-right: max(16px, env(safe-area-inset-right, 0px));
-}
-.intro::before { content: ""; position: absolute; inset: 0; background: linear-gradient(to top, rgba(10,15,30,.94) 12%, rgba(10,15,30,.1) 62%); }
-.intro > * { position: relative; margin: 0; max-width: 640px; width: 100%; align-self: center; }
-.intro h1 { font-family: var(--font-display); font-weight: 400; font-size: clamp(30px, 7vw, 46px); line-height: 1.15; text-wrap: balance; }
-.intro p { line-height: 1.55; }
-.intro-home { color: var(--dobok); text-align: center; font-size: 14px; }
-.intro button { border: 0; background: var(--hong); color: #fff; font-family: var(--font-display); font-size: 21px; padding: 14px; }
 
 .veil {
   position: fixed; inset: 0; z-index: 5; background: rgba(10,15,30,.6);
@@ -163,23 +151,18 @@ th { font-size: 13px; color: var(--ink-soft); }
 
 <div class="hud-top">
   <div class="brand"><img src="assets/tex/emblem.png" alt=""><span id="brandName"></span></div>
-  <div class="where" id="where" aria-live="polite">현관</div>
+  <div class="hud-right">
+    <div class="where" id="where" aria-live="polite">도장 입구 앞</div>
+    <a class="home-link" href="https://mastertkd-sandong.kr/">홈페이지</a>
+  </div>
 </div>
-<div class="hint" id="hint">바닥을 누르면 걸어가요. 끌면 시점이 돌아가요.</div>
+<div class="hint" id="hint">문 쪽 바닥을 누르면 걸어 들어가요. 끌면 시점이 돌아가요.</div>
 <div class="hud-bottom">
   <div class="hud-actions">
     <button class="action" id="action" hidden></button>
     <button class="action alt" id="photoBtn">이 공간 실제 사진</button>
   </div>
   <nav class="places" id="places" aria-label="가볼 곳"></nav>
-</div>
-
-<div class="intro" id="intro">
-  <img src="assets/tex/emblem.png" alt="마스터태권도 엠블럼">
-  <h1 id="introTitle"></h1>
-  <p>평면도를 따라 지은 3D 도장이에요. 걸어 다니며 수련장을 둘러보고, 안내문을 읽고, 미트도 차보세요.</p>
-  <button id="enter">도장 들어가기</button>
-  <a class="intro-home" href="https://mastertkd-sandong.kr/">홈페이지로 돌아가기</a>
 </div>
 
 <div class="veil" id="veil" hidden>
@@ -268,6 +251,7 @@ const DOJANG = {
     { name: '검은띠', grade: '단', form: '금강 태백', value: '리더십', color: 0x1a1a1f, css: '#1a1a1f', min: .95 }
   ],
   photos: {
+    out: [[0, '도장 입구']],
     hall: [[1, '현관에서 안쪽으로'], [2, '복도와 입구'], [0, '입구 밖']],
     gwan1: [[3, '창문 쪽'], [4, '교구 선반 쪽'], [5, '창가 벤치와 줄넘기'], [6, '에어매트와 선반']],
     gwan2: [[7, '로고 벽 쪽'], [8, '출입문 쪽']],
@@ -295,8 +279,6 @@ function boot() {
     return showFail('이 기기의 브라우저에서는 3D 화면을 열 수 없어요. 다른 브라우저로 열어 주세요.');
   }
   $('brandName').textContent = DOJANG.name;
-  $('introTitle').textContent = DOJANG.name;
-  $('enter').addEventListener('click', () => { $('intro').hidden = true; });
 
   renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
   renderer.outputEncoding = THREE.sRGBEncoding;
@@ -439,6 +421,7 @@ function boot() {
   // 건물 바닥판 (ㄴ자 평면)
   box(-.5, -.5, 22.5, 14.5, -.5, .49, 0x2a3454);
   box(-.5, 14.5, 14.5, 22.5, -.5, .49, 0x2a3454);
+  box(14.5, 14.5, 19.5, 19.2, -.5, .49, 0x2a3454);
 
   // 1관 바닥: 검은 테두리에 흰 매트 두 장
   floor(7, 0, 22, 14, canvasTex(1024, 956, (g, w, h) => {
@@ -466,6 +449,19 @@ function boot() {
   floor(10.6, 14, 14, 18.6, tileTex, 5.7, 7.6);
   floor(2.5, 18.6, 14, 22, vinylTex, 19, 5.6);
   floor(0, 14, 2.5, 22, woodTex, 1, 3);
+  // 건물 복도: 화강석 바닥에 입구로 이어지는 검은 줄
+  floor(14, 14, 19, 18.7, canvasTex(1024, 963, (g, w, h) => {
+    g.fillStyle = '#a9abab'; g.fillRect(0, 0, w, h);
+    for (let i = 0; i < 9000; i++) {
+      g.fillStyle = `rgba(${Math.random() > .5 ? '255,255,255' : '30,30,34'},${Math.random() * .22})`;
+      g.fillRect(Math.random() * w, Math.random() * h, 2, 2);
+    }
+    g.strokeStyle = 'rgba(70,72,76,.5)'; g.lineWidth = 2;
+    for (let x = 0; x <= w; x += 123) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, h); g.stroke(); }
+    for (let y = 0; y <= h; y += 123) { g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke(); }
+    g.fillStyle = '#17181c';
+    g.fillRect(0, h * .58, w, 14); g.fillRect(0, h * .88, w, 14);
+  }));
 
   function floorText(text, x, z, width, color, dir) {
     const draw = (g, w, h) => {
@@ -551,7 +547,25 @@ function boot() {
   const wEast1 = wallRun('v', 22, 0, 14, { side: 'e' });
   const wSouth1 = wallRun('h', 14, 14, 22, { side: 's' });
   wallRun('h', 22, 0, 14, { side: 's', openings: [{ a: 4.2, b: 6.8, type: 'window', blind: true, sill: .9 }, { a: 10, b: 12.4, type: 'window', blind: true, sill: .9 }] });
-  const wEastHall = wallRun('v', 14, 14, 18.6, { side: 'e', skin: { w: brickTex } });
+  const signDark = canvasTex(64, 64, (g, w, h) => { g.fillStyle = '#1b1e2a'; g.fillRect(0, 0, w, h); });
+  const wEastHall = wallRun('v', 14, 14, 18.6, { side: 'e', skin: { w: brickTex, e: signDark }, openings: [{ a: 16.2, b: 18.2, type: 'door' }] });
+  wEastHall.keepOutside = true;
+  // 도장 입구 앞 건물 복도
+  // 입구의 오른쪽 벽은 1관 농구대 쪽 벽과 같은 벽이다
+  wSouth1.keepOutside = true;
+  const marbleTex = canvasTex(512, 256, (g, w, h) => {
+    g.fillStyle = '#ded6c7'; g.fillRect(0, 0, w, h);
+    g.strokeStyle = 'rgba(150,125,90,.4)'; g.lineWidth = 2;
+    for (let i = 0; i < 22; i++) {
+      g.beginPath();
+      let x = Math.random() * w, y = Math.random() * h;
+      g.moveTo(x, y);
+      for (let k = 0; k < 5; k++) { x += 20 + Math.random() * 50; y += (Math.random() - .5) * 60; g.lineTo(x, y); }
+      g.stroke();
+    }
+  });
+  const wOutS = wallRun('h', 18.7, 14, 19, { side: 's', color: 0xded6c7, skin: { n: marbleTex } });
+  wallRun('v', 19, 14, 18.7, { side: 'e', color: 0xd5d8dd });
   wallRun('v', 14, 18.6, 22, { side: 'e', skin: { w: brickTex } });
   // 2관과 1관 사이, 안쪽 유리창 두 개
   const w21 = wallRun('v', 7, 0, 14, { openings: [{ a: 4.5, b: 6.5, type: 'window' }, { a: 7, b: 9.8, type: 'window' }] });
@@ -732,8 +746,26 @@ function boot() {
   box(9.46, 14.14, 10.02, 14.2, .31, .62, 0xf4f4f0);
   box(9.36, 14.18, 10.1, 14.24, .78, .5, 0x17181c);
   solid(9.42, 14.1, 10.98, 14.62);
-  // 입구 유리문 (안쪽에서 본 모습)
-  decal(photoTex('door_inside'), 2, 2.2, 13.885, 1.1, 17.2, 'w', wEastHall);
+  // 입구 유리문: 밖에서 본 면과 안에서 본 면이 다르고, 가까이 가면 양쪽으로 열린다
+  const doorPanelN = box(13.98, 16.2, 14.02, 17.2, 0, 2.15, 0xcfd6d8, { e: photoTex('out_door_n'), w: photoTex('door_in_n') });
+  const doorPanelS = box(13.98, 17.2, 14.02, 18.2, 0, 2.15, 0xcfd6d8, { e: photoTex('out_door_s'), w: photoTex('door_in_s') });
+  wEastHall.decor.push(doorPanelN, doorPanelS);
+  const doorOpen = { amount: 0, n: doorPanelN.position.z, s: doorPanelS.position.z };
+  // 간판과 포스터
+  decal(photoTex('out_sign'), 2.63, .55, 14.115, 2.425, 16.94, 'e', wEastHall);
+  decal(photoTex('out_belts'), .86, 2.1, 14.8, 1.2, 14.115, 's', wSouth1);
+  decal(photoTex('out_programs'), .96, 2.1, 15.75, 1.2, 14.115, 's', wSouth1);
+  const outBandDraw = (g, w, h) => {
+    g.fillStyle = '#f4f5f6'; g.fillRect(0, 0, w, h);
+    g.textBaseline = 'middle'; g.textAlign = 'left';
+    g.font = '64px "Black Han Sans", "Malgun Gothic", sans-serif';
+    g.fillStyle = '#b92a2c'; g.fillText('국가대표', 20, h / 2 + 4);
+    g.fillStyle = '#1f3f94'; g.fillText('마스터', 300, h / 2 + 4);
+  };
+  const outBand = canvasTex(512, 96, outBandDraw);
+  decal(outBand, 2, .36, 15.32, 2.48, 14.115, 's', wSouth1);
+  redraws.push(() => { outBandDraw(outBand.image.getContext('2d'), 512, 96); outBand.needsUpdate = true; });
+  wOutS.decor.push(box(16.4, 18.5, 17.8, 18.6, 0, 2.2, 0xb4b8bd), box(17.08, 18.48, 17.12, 18.5, 0, 2.2, 0x6f7378));
   cyl(.18, .34, 13.6, 0, 15, 0x5a5d66);
   solid(13.4, 14.8, 13.9, 15.25);
   // 휴게실 창 앞 흰 선반
@@ -864,7 +896,7 @@ function boot() {
   const BELTS = DOJANG.belts;
   const savedBelt = BELTS.find(b => b.name === store.get('dojang-belt')) || BELTS[0];
   const me = makeChar(savedBelt.color, 1.05);
-  const player = { x: 12.6, z: 17.2, dir: -Math.PI / 2, walk: 0, path: [], pending: null, stall: 0 };
+  const player = { x: 16, z: 17.2, dir: -Math.PI / 2, walk: 0, path: [], pending: null, stall: 0 };
   const R = .28, SPEED = 4.2;
   const kids = [];
   // 1관 정면은 에어매트가 있는 동쪽 벽, 2관 정면은 로고가 있는 북쪽 벽
@@ -898,7 +930,9 @@ function boot() {
     labels.push({ sp, y, phase: labels.length });
     return sp;
   }
+  const entryLabel = pinLabel('도장 들어가기', 14.6, 3.5, 17.2, '#b92a2c');
   const hotspots = [
+    { name: '도장 들어가기', noChip: true, stand: [12.4, 17.2], objs: [doorPanelN, doorPanelS], label: entryLabel, open: () => {} },
     { name: '안내문', action: '안내문 보기', stand: [12.5, 19.55], objs: [noticeMesh, officeGroup],
       label: pinLabel('안내문', 12.4, 3.2, 18.8, '#161f38'), open: () => openBoard(0) },
     { name: '미트 격파', action: '미트 격파 시작', stand: [9.75, 11.7], objs: [dummy],
@@ -934,9 +968,10 @@ function boot() {
   scene.add(tapRing);
 
   // ---------- 이동 ----------
-  const ROOM_NAMES = { hall: '현관·복도', gwan1: '1관', gwan2: '2관', yeo: '여자 탈의실', nam: '남자 탈의실', rest: '휴게실', office: '사무실' };
+  const ROOM_NAMES = { out: '도장 입구 앞', hall: '현관·복도', gwan1: '1관', gwan2: '2관', yeo: '여자 탈의실', nam: '남자 탈의실', rest: '휴게실', office: '사무실' };
   function roomAt(x, z) {
     if (z < 14) return x < 7 ? 'gwan2' : 'gwan1';
+    if (x >= 14) return 'out';
     if (x < 2.5) return z < 17.1 ? 'yeo' : 'nam';
     if (z < 18.6) return 'hall';
     return x < 8.7 ? 'rest' : 'office';
@@ -949,7 +984,7 @@ function boot() {
   const freeCell = new Uint8Array(GRID * GRID);
   for (let j = 0; j < GRID; j++) for (let i = 0; i < GRID; i++) {
     const x = (i + .5) * CELL, z = (j + .5) * CELL;
-    const inside = z < 14 ? true : x < 14;
+    const inside = z < 14 || x < 14 || (x < 19 && z < 18.7);
     freeCell[j * GRID + i] = inside && !blocked(x, z) ? 1 : 0;
   }
   function clearLine(ax, az, bx, bz) {
@@ -1017,7 +1052,10 @@ function boot() {
   $('photoBtn').addEventListener('click', () => openPhotos(roomAt(player.x, player.z)));
 
   // ---------- 입력 ----------
-  const view = { yaw: -.55, pitch: .98, dist: 25, target: new THREE.Vector3(player.x, .8, player.z) };
+  const portrait = innerWidth < innerHeight;
+  const view = { yaw: .5, pitch: .8, dist: portrait ? 17 : 11, target: new THREE.Vector3(player.x - 1.2, .8, player.z) };
+  const insideView = { yaw: -.55, pitch: .98, dist: portrait ? 34 : 25 };
+  let autoCam = 'wait';
   const clampDist = d => Math.min(50, Math.max(10, d));
   const pointers = new Map();
   let dragged = false, pinchStart = 0, pinchDist = 0;
@@ -1028,7 +1066,7 @@ function boot() {
     if (pointers.size === 1) dragged = false;
     if (pointers.size === 2) {
       const [a, b] = [...pointers.values()];
-      pinchStart = Math.hypot(a.x - b.x, a.y - b.y); pinchDist = view.dist; dragged = true;
+      pinchStart = Math.hypot(a.x - b.x, a.y - b.y); pinchDist = view.dist; dragged = true; autoCam = null;
     }
   });
   canvas.addEventListener('pointermove', e => {
@@ -1044,6 +1082,7 @@ function boot() {
     }
     if (Math.hypot(e.clientX - p.sx, e.clientY - p.sy) > 8) dragged = true;
     if (dragged) {
+      autoCam = null;
       view.yaw -= dx * .006;
       view.pitch = Math.min(1.35, Math.max(.5, view.pitch + dy * .004));
       dismissHint();
@@ -1056,7 +1095,7 @@ function boot() {
   }
   canvas.addEventListener('pointerup', pointerEnd);
   canvas.addEventListener('pointercancel', pointerEnd);
-  canvas.addEventListener('wheel', e => { e.preventDefault(); view.dist = clampDist(view.dist * (1 + e.deltaY * .001)); }, { passive: false });
+  canvas.addEventListener('wheel', e => { e.preventDefault(); autoCam = null; view.dist = clampDist(view.dist * (1 + e.deltaY * .001)); }, { passive: false });
 
   const ray = new THREE.Raycaster();
   const ndc = new THREE.Vector2();
@@ -1072,7 +1111,7 @@ function boot() {
     }
     if (!ray.ray.intersectPlane(ground, groundHit)) return;
     const gx = groundHit.x, gz = groundHit.z;
-    const inside = gx > .1 && gz > .1 && gz < 21.9 && (gz < 13.9 ? gx < 21.9 : gx < 13.9);
+    const inside = gx > .1 && gz > .1 && gz < 21.9 && (gz < 13.9 ? gx < 21.9 : gx < 13.9 || (gx < 18.9 && gz < 18.6));
     if (!inside) return;
     walkTo(gx, gz);
     tapRing.position.x = gx;
@@ -1085,7 +1124,7 @@ function boot() {
     if (e.key === 'Escape') { closeSheet(); if (!$('game').hidden) closeGame(); if (!$('shot').hidden) closeShot(); return; }
     if (!$('game').hidden) return gameKey(e);
     if (!$('shot').hidden) return;
-    if (!$('veil').hidden || !$('intro').hidden) return;
+    if (!$('veil').hidden) return;
     if (MOVE_KEYS.includes(e.code)) { keys.add(e.code); e.preventDefault(); dismissHint(); }
     if ((e.code === 'Enter' || e.code === 'Space') && nearSpot && document.activeElement === document.body) { e.preventDefault(); nearSpot.open(); }
   });
@@ -1668,7 +1707,7 @@ function boot() {
     head.set(player.x, 1, player.z);
     const p = camera.position;
     walls.forEach(w => {
-      const fade = (w.side === 's' && p.z > w.at) || (w.side === 'n' && p.z < w.at) || (w.side === 'e' && p.x > w.at) || (w.side === 'w' && p.x < w.at)
+      const fade = (w.side === 's' && p.z > w.at && !(w.keepOutside && player.x >= 14 && player.z > w.at)) || (w.side === 'n' && p.z < w.at) || (w.side === 'e' && p.x > w.at && !(w.keepOutside && player.x >= 14)) || (w.side === 'w' && p.x < w.at)
         || w.boxes.some(b => segHitsBox(p, head, b.min, b.max));
       const goal = fade ? .1 : 1;
       if (w.opacity !== goal) {
@@ -1688,14 +1727,13 @@ function boot() {
   }
   addEventListener('resize', resize);
   resize();
-  if (innerWidth < innerHeight) view.dist = 34;
 
   let last = performance.now(), clock = 0, whereName = '';
   function frame(now) {
     requestAnimationFrame(frame);
     const dt = Math.min(.1, (now - last) / 1000);
     last = now;
-    if (!$('game').hidden || !$('shot').hidden || !$('intro').hidden) return; // 게임과 시작 화면에서는 3D 그리기를 쉰다
+    if (!$('game').hidden || !$('shot').hidden) return; // 게임 중에는 3D 그리기를 쉰다
     clock += dt;
     let mx = 0, mz = 0;
     if (keys.size && $('veil').hidden) {
@@ -1748,7 +1786,16 @@ function boot() {
     }
     if (tapRing.material.opacity > 0) tapRing.material.opacity = Math.max(0, tapRing.material.opacity - dt * 1.4);
 
-    view.target.lerp(head.set(player.x, .8, player.z), Math.min(1, dt * 6));
+    // 입구 앞에서는 간판과 문이 화면에 들어오도록 문 쪽을 함께 비춘다
+    view.target.lerp(head.set(player.x - (player.x >= 14 ? 1.2 : 0), .8, player.z), Math.min(1, dt * 6));
+    if (autoCam === 'wait' && player.x < 14.6) autoCam = 'turn';
+    if (autoCam === 'turn') {
+      const ease = Math.min(1, dt * 1.6);
+      view.yaw += (insideView.yaw - view.yaw) * ease;
+      view.pitch += (insideView.pitch - view.pitch) * ease;
+      view.dist += (insideView.dist - view.dist) * ease;
+      if (Math.abs(view.dist - insideView.dist) < .2) autoCam = null;
+    }
     const cp = Math.cos(view.pitch);
     camera.position.set(
       view.target.x + view.dist * Math.sin(view.yaw) * cp,
@@ -1756,10 +1803,15 @@ function boot() {
       view.target.z + view.dist * Math.cos(view.yaw) * cp);
     camera.lookAt(view.target);
     updateWalls(dt);
+    const doorNear = Math.hypot(player.x - 14, player.z - 17.2) < 2.6;
+    doorOpen.amount += ((doorNear ? 1 : 0) - doorOpen.amount) * Math.min(1, dt * 6);
+    doorPanelN.position.z = doorOpen.n - doorOpen.amount * .92;
+    doorPanelS.position.z = doorOpen.s + doorOpen.amount * .92;
+    entryLabel.visible = player.x >= 14;
 
     const room = roomAt(player.x, player.z);
     if (room !== whereName) { whereName = room; $('where').textContent = ROOM_NAMES[room]; }
-    const near = hotspots.find(h => Math.hypot(h.stand[0] - player.x, h.stand[1] - player.z) < 1.2) || null;
+    const near = hotspots.find(h => h.action && Math.hypot(h.stand[0] - player.x, h.stand[1] - player.z) < 1.2) || null;
     if (near !== nearSpot) {
       nearSpot = near;
       $('action').hidden = !near;
