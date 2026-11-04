@@ -4,6 +4,14 @@
 <title>3D로 도장 둘러보기 | 국가대표마스터태권도장</title>
 <meta name="description" content="구미 산동 국가대표마스터태권도장을 3D로 걸어 다니며 수련장과 실제 사진을 둘러보세요.">
 <link rel="canonical" href="https://mastertkd-sandong.kr/3d/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="3D로 도장 둘러보기 | 국가대표마스터태권도장">
+<meta property="og:description" content="구미 산동 국가대표마스터태권도장을 3D로 걸어 다니며 수련장과 실제 사진을 둘러보세요.">
+<meta property="og:url" content="https://mastertkd-sandong.kr/3d/">
+<meta property="og:image" content="https://mastertkd-sandong.kr/3d/assets/tex/og-3d.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -40,11 +48,13 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
 .brand img { height: 40px; width: auto; flex: none; }
 .intro img { width: 92px; height: auto; align-self: center; }
 .hud-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex: none; }
-.home-link { pointer-events: auto; background: rgba(22,31,56,.86); color: var(--dobok); font-size: 13px; padding: 4px 10px; text-decoration: none; }
+.hud-links { display: flex; gap: 4px; }
+.visits { font-size: 13px; text-shadow: 0 1px 4px rgba(0,0,0,.8); }
+.home-link { pointer-events: auto; border: 0; background: rgba(22,31,56,.86); color: var(--dobok); font-size: 13px; padding: 4px 10px; text-decoration: none; }
 .where { font-family: var(--font-display); font-size: 15px; background: var(--dobok); color: var(--ink); padding: 5px 12px; white-space: nowrap; }
 .hint {
   position: fixed; z-index: 2; pointer-events: none; left: 50%; transform: translateX(-50%);
-  top: calc(56px + env(safe-area-inset-top, 0px));
+  top: calc(100px + env(safe-area-inset-top, 0px));
   width: max-content; max-width: calc(100% - 32px); text-align: center;
   background: rgba(22,31,56,.86); padding: 7px 14px; font-size: 13px; transition: opacity .4s;
 }
@@ -121,6 +131,7 @@ th { font-size: 13px; color: var(--ink-soft); }
 .stamp.done .stamp-seal { border: 3px solid var(--hong); transform: rotate(-10deg); background: #fff; }
 .stamp-seal img { width: 42px; height: 42px; object-fit: contain; }
 .stamp-news { color: var(--gold); font-family: var(--font-display); font-size: 19px; }
+.stamp-share { display: block; width: 100%; margin-top: 12px; padding: 11px; border: 0; background: var(--ink); color: var(--dobok); font-size: 15px; font-weight: 700; }
 @media (min-width: 620px) { .sheet.board .tabs { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
 .viewer img { display: block; width: 100%; max-height: 62vh; object-fit: contain; background: #0c1122; }
 .viewer-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-top: 10px; }
@@ -193,7 +204,11 @@ th { font-size: 13px; color: var(--ink-soft); }
   <div class="brand"><img src="assets/tex/emblem.png" alt=""><span id="brandName"></span></div>
   <div class="hud-right">
     <div class="where" id="where" aria-live="polite">도장 입구 앞</div>
-    <a class="home-link" href="https://mastertkd-sandong.kr/">홈페이지</a>
+    <div class="hud-links">
+      <button class="home-link js-share" data-text="">공유</button>
+      <a class="home-link" href="https://mastertkd-sandong.kr/">홈페이지</a>
+    </div>
+    <div class="visits" id="visits" hidden></div>
   </div>
 </div>
 <div class="hint" id="hint">문 쪽 바닥을 누르면 걸어 들어가요. 끌면 시점이 돌아가요.</div>
@@ -296,6 +311,9 @@ const DOJANG = {
     ]}
   ],
   // 도장깨기: 게임별 최고 기록이 need 이상이면 도장을 찍는다. 기준은 여기서 바꾼다.
+  share: { url: 'https://mastertkd-sandong.kr/3d/', text: '우리 태권도장을 3D로 걸어 다니며 둘러보세요.' },
+  // 공개 키라 페이지에 있어도 된다. 이 키로는 방문자 함수 말고 표를 읽거나 쓸 수 없다
+  visits: { host: 'mastertkd-sandong.kr', site: 'mastertkd-sandong', url: 'https://ebgoolsymyzkftvavpyj.supabase.co/rest/v1/rpc/dojang_visit', key: 'sb_publishable_378Ep28vw4J9Sia2OsN6-Q_gqnu5OQJ' },
   stamps: [
     { id: 'mit', name: '미트 격파', need: 600, unit: '점' },
     { id: 'soccer', name: '축구', need: 300, unit: '점' },
@@ -346,7 +364,26 @@ function stampGoal(id) {
   return `<p>${stampDone(s) ? '도장을 찍은 게임이에요' : `${s.need}${s.unit} 이상이면 도장을 찍어요`}</p>`;
 }
 
+// 오늘 방문자를 센다. 실패해도 둘러보기에는 영향이 없고 숫자만 안 보인다
+async function countVisit() {
+  const v = DOJANG.visits;
+  if (location.hostname !== v.host || !window.crypto || !crypto.randomUUID) return;
+  let id = store.get('dojang-visitor');
+  if (!id) { id = crypto.randomUUID(); store.set('dojang-visitor', id); }
+  try {
+    const res = await fetch(v.url, {
+      method: 'POST',
+      headers: { apikey: v.key, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ p_site: v.site, p_visitor: id })
+    });
+    if (!res.ok) return;
+    $('visits').textContent = `오늘 방문자 ${await res.json()}명`;
+    $('visits').hidden = false;
+  } catch (e) {}
+}
+
 function boot() {
+  countVisit();
   if (!window.THREE) return showFail('3D 도구를 불러오지 못했어요. 인터넷 연결을 확인하고 새로고침해 주세요.');
   let renderer;
   try {
@@ -1368,14 +1405,35 @@ function boot() {
       grid.appendChild(b);
     });
     body.appendChild(grid);
+    const share = document.createElement('button');
+    share.className = 'stamp-share js-share';
+    share.dataset.text = count ? `도장깨기 ${count}개를 찍었어요! 너도 해봐!` : '우리 도장 도장깨기, 같이 해보자!';
+    share.textContent = count ? '친구에게 자랑하기' : '친구에게 알려주기';
+    body.appendChild(share);
   }
+  // 공유 창이 없는 브라우저에서는 주소를 복사한다
+  document.addEventListener('click', async e => {
+    const btn = e.target.closest('.js-share');
+    if (!btn) return;
+    const { url, text } = DOJANG.share;
+    try {
+      if (navigator.share) { await navigator.share({ title: DOJANG.name, text: btn.dataset.text || text, url }); return; }
+      await navigator.clipboard.writeText(url);
+      const label = btn.textContent;
+      btn.textContent = '주소를 복사했어요';
+      setTimeout(() => { btn.textContent = label; }, 1800);
+    } catch (err) {
+      if (err.name !== 'AbortError') window.prompt('이 주소를 복사해 보내주세요', url);
+    }
+  });
   // 이번 판으로 새 도장을 찍었으면 결과 화면에 넣을 문구를 돌려준다
   function stampNews(id, prevBest, score) {
     const s = stampOf(id);
     if (prevBest >= s.need || score < s.need) return '';
     const list = DOJANG.stamps, count = list.filter(stampDone).length;
     if (count === list.length) goldBand.visible = true;
-    return `<p class="stamp-news">${s.name} 도장을 찍었어요! (${count}/${list.length})${count === list.length ? ' 금색 머리띠를 받았어요' : ''}</p>`;
+    return `<p class="stamp-news">${s.name} 도장을 찍었어요! (${count}/${list.length})${count === list.length ? ' 금색 머리띠를 받았어요' : ''}</p>
+      <div class="row"><button class="btn-sub js-share" data-text="${s.name} 도장을 찍었어요! 너도 해봐!">친구에게 자랑하기</button></div>`;
   }
 
   function openPhotos(room) {
