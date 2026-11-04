@@ -95,21 +95,21 @@ th { font-size: 13px; color: var(--ink-soft); }
 .belt-card b { display: block; }
 .belt-card span { font-size: 13px; color: var(--ink-soft); }
 /* 사무실 안내문: 창 높이를 고정하고, 카테고리마다 색을 다르게 보여준다 */
-.sheet.board { height: min(640px, 100%); font-family: var(--font-display); border-top-color: var(--cat); }
+.sheet.board { height: min(640px, 100%); border-top-color: var(--cat); }
 .sheet.board .sheet-body { flex: 1; font-size: 17px; }
-.sheet.board b, .sheet.board th { font-weight: 400; }
+.sheet.board b { font-family: var(--font-display); font-weight: 400; }
 .sheet.board .tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; padding: 2px 18px 10px; border-bottom: 4px solid var(--cat); overflow: visible; }
-.sheet.board .tabs button { background: #fff; color: var(--tab); border: 2px solid var(--tab); padding: 9px 2px; font-size: 16px; font-weight: 400; white-space: normal; }
+.sheet.board .tabs button { background: #fff; color: var(--tab); border: 2px solid var(--tab); padding: 9px 2px; font-size: 16px; font-weight: 700; white-space: normal; word-break: keep-all; }
 .sheet.board .tabs button[aria-selected="true"] { background: var(--tab); color: #fff; }
 .sheet.board .notice { gap: 4px; margin-bottom: 8px; padding: 10px 12px; background: #fff; border-bottom: 0; border-left: 6px solid var(--cat); }
-.sheet.board .notice b { font-size: 20px; color: var(--cat); }
-.sheet.board .notice-links a { background: var(--cat); color: #fff; padding: 9px 14px; font-size: 16px; }
+.sheet.board .notice b { font-size: 20px; color: var(--ink); }
+.sheet.board .notice-links a { background: var(--cat); color: #fff; padding: 9px 14px; font-size: 16px; font-weight: 700; }
 .sheet.board table { background: #fff; color: var(--ink); }
 .sheet.board th { padding-left: 12px; background: var(--cat); color: #fff; font-size: 15px; }
 .sheet.board td { padding: 12px 10px 12px 12px; font-size: 18px; }
-.sheet.board td:first-child { color: var(--cat); }
+.sheet.board td:first-child { font-family: var(--font-display); }
 .sheet.board .belt-card { background: #fff; }
-.sheet.board .belt-card b { font-size: 17px; color: var(--cat); }
+.sheet.board .belt-card b { font-size: 17px; color: var(--ink); }
 .sheet.board .belt-card span { font-size: 15px; color: var(--ink); }
 .sheet.board .board-foot { font-size: 15px; color: var(--ink); }
 .stamp-head { margin: 0 0 12px; font-family: var(--font-display); font-size: 17px; }
@@ -290,7 +290,7 @@ const DOJANG = {
       { title: '도장의 수업과 소식', text: '수업 기록과 행사, 아이들의 일상은 네이버 블로그에서 확인하세요.', links: [['네이버 블로그 보기', 'https://blog.naver.com/master2546'], ['도장 홈페이지', 'https://mastertkd-sandong.kr/']] }
     ]},
     { tab: '상담 신청', color: '#b92a2c', consult: true, kind: 'notices', items: [
-      { title: '상담 전화', text: '궁금한 점이 있으면 편하게 전화나 문자 주세요.', links: [['010-2042-2546 전화', 'tel:01020422546'], ['054-471-6080 전화', 'tel:0544716080'], ['문자 보내기', 'sms:01020422546']] },
+      { title: '상담 전화', text: '궁금한 점이 있으면 편하게 전화나 문자 주세요.', links: [['010-2042-2546 전화', 'tel:01020422546'], ['문자 보내기', 'sms:01020422546']] },
       { title: '무료 체험수업', text: '아이의 나이, 학교·유치원, 거주 지역과 희망 시간을 알려주세요. 방문 전 전화로 일정을 확인해 주세요.' },
       { title: '오시는 길', text: '경북 구미시 산동읍 신당2로 29 대호프라자 8층', links: [['네이버 지도 보기', 'https://map.naver.com/p/entry/place/1252319234']] }
     ]}
