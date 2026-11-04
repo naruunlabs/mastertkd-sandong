@@ -123,8 +123,8 @@ th { font-size: 13px; color: var(--ink-soft); }
 .sheet.board .belt-card span { font-size: 15px; color: var(--ink); }
 .sheet.board .board-foot { font-size: 15px; color: var(--ink); }
 .stamp-head { margin: 0 0 12px; font-family: var(--font-display); font-size: 17px; }
-.stamps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
-.stamp { border: 1px solid var(--line); background: #fff; color: var(--ink); padding: 10px 4px; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; line-height: 1.25; }
+.stamps { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.stamp { flex: 0 0 calc(25% - 6px); border: 1px solid var(--line); background: #fff; color: var(--ink); padding: 10px 4px; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; line-height: 1.25; }
 .stamp b { font-family: var(--font-display); font-weight: 400; font-size: 15px; }
 .stamp small { font-size: 12px; color: var(--ink-soft); }
 .stamp-seal { width: 60px; height: 60px; flex: none; display: flex; align-items: center; justify-content: center; border: 2px dashed #9aa3b5; border-radius: 50%; font-size: 13px; font-weight: 700; color: var(--ink-soft); }
@@ -322,7 +322,9 @@ const DOJANG = {
     { id: 'pumsae', name: '품새 퀴즈', need: 60, unit: '점' },
     { id: 'run', name: '매트 달리기', need: 100, unit: 'm' },
     { id: 'pads', name: '쿠션 벽 터치', need: 150, unit: '점' },
-    { id: 'cups', name: '컵 쌓기', need: 1200, unit: '점' }
+    { id: 'cups', name: '컵 쌓기', need: 1200, unit: '점' },
+    { id: 'tidy', name: '탈의실 정리', need: 30, unit: '개' },
+    { id: 'fold', name: '도복 개기', need: 6, unit: '벌' }
   ],
   // 입구 포스터의 승급 단계
   belts: [
@@ -359,6 +361,16 @@ function showFail(msg) { const f = $('fail'); f.textContent = msg; f.hidden = fa
 const stampOf = id => DOJANG.stamps.find(s => s.id === id);
 function stampBest(s) { return Number(store.get(s.id === 'mit' ? 'dojang-best' : 'dojang-best-' + s.id)) || 0; }
 function stampDone(s) { return stampBest(s) >= s.need; }
+// 금색 머리띠는 한 번 받으면 유지한다. 게임이 늘기 전에 8개를 다 찍은 아이도 그대로 쓴다
+const STAMPS_ADDED = ['tidy', 'fold'];
+function goldEarned() {
+  if (!store.get('dojang-gold-checked')) {
+    store.set('dojang-gold-checked', '1');
+    if (DOJANG.stamps.filter(s => !STAMPS_ADDED.includes(s.id)).every(stampDone)) store.set('dojang-gold', '1');
+  }
+  if (DOJANG.stamps.every(stampDone)) store.set('dojang-gold', '1');
+  return store.get('dojang-gold') === '1';
+}
 function stampGoal(id) {
   const s = stampOf(id);
   return `<p>${stampDone(s) ? '도장을 찍은 게임이에요' : `${s.need}${s.unit} 이상이면 도장을 찍어요`}</p>`;
@@ -1009,6 +1021,23 @@ function boot() {
     for (let i = 0; i < 40; i++) { g.beginPath(); g.moveTo(Math.random() * w, Math.random() * h); g.lineTo(Math.random() * w, Math.random() * h); g.stroke(); }
     g.strokeStyle = '#5a616d'; g.lineWidth = 8; g.strokeRect(0, 0, w, h);
   }), 1.7, 1.2, .112, 1.7, 15.5, 'e', wWest);
+  // 여자 탈의실: 낮은 선반 위에 개어 둔 도복과 띠
+  const foldGroup = new THREE.Group();
+  scene.add(foldGroup);
+  [0, .07, .14].forEach((y, i) => box(.28 + i * .01, 14.2, .82 - i * .01, 14.5, .75 + y, .065, i % 2 ? 0xe9e9e4 : 0xf7f7f4, null, foldGroup));
+  box(.27, 14.31, .83, 14.39, .75, .225, 0x1a1a1f, null, foldGroup);
+  // 남자 탈의실: 선반 앞 바닥에 어질러진 가방과 옷
+  const tidyGroup = new THREE.Group();
+  scene.add(tidyGroup);
+  [[.66, 18.8, .34, .14, .3, .2, 0xf7f7f4], [.85, 19.25, .36, .1, .36, -.5, 0xeeeeea], [.72, 19.55, .3, .12, .22, .7, 0xf7f7f4]].forEach(([x, z, w, h, d, rot, c]) => {
+    const m = box(x - w / 2, z - d / 2, x + w / 2, z + d / 2, 0, h, c, null, tidyGroup);
+    m.rotation.y = rot;
+  });
+  const floorBelt = box(.55, 19.02, 1.05, 19.08, 0, .03, 0x1d4fc2, null, tidyGroup);
+  floorBelt.rotation.y = .4;
+  const floorStrap = box(.5, 18.94, .84, 18.98, .14, .03, 0x1a1a1f, null, tidyGroup);
+  floorStrap.rotation.y = .2;
+  solid(.55, 18.6, 1.05, 19.75);
 
   // ---------- 사람 ----------
   function makeChar(beltColor, scale) {
@@ -1046,7 +1075,7 @@ function boot() {
   // 도장깨기를 모두 마치면 쓰는 금색 머리띠
   const goldBand = new THREE.Mesh(new THREE.CylinderGeometry(.208, .208, .07, 16), lam(0xe0b53a));
   goldBand.position.y = 1.27;
-  goldBand.visible = DOJANG.stamps.every(stampDone);
+  goldBand.visible = goldEarned();
   me.root.add(goldBand);
   const player = { x: 16, z: 17.2, dir: -Math.PI / 2, walk: 0, path: [], pending: null, stall: 0 };
   const R = .28, SPEED = 4.2;
@@ -1104,7 +1133,11 @@ function boot() {
     { name: '쿠션 벽 터치', noChip: true, action: '쿠션 터치 시작', stand: [1.1, 8], objs: [westPads],
       label: pinLabel('쿠션 터치', .5, 2.7, 8, '#d9761f'), open: () => openMini('pads') },
     { name: '컵 쌓기', noChip: true, action: '컵 쌓기 시작', stand: [6.2, 20.3], objs: [cupGroup],
-      label: pinLabel('컵 쌓기', 6.55, 2.2, 21.3, '#2c8a43'), open: () => openMini('cups') }
+      label: pinLabel('컵 쌓기', 6.55, 2.2, 21.3, '#2c8a43'), open: () => openMini('cups') },
+    { name: '탈의실 정리', noChip: true, action: '탈의실 정리 시작', stand: [1.75, 19.2], objs: [tidyGroup],
+      label: pinLabel('탈의실 정리', .9, 2.4, 19.2, '#1d5dc2'), open: () => openMini('tidy') },
+    { name: '도복 개기', noChip: true, action: '도복 개기 시작', stand: [.8, 15.3], objs: [foldGroup],
+      label: pinLabel('도복 개기', .8, 2.4, 14.6, '#6a3fa8'), open: () => openMini('fold') }
   ];
   function addPlace(name, go) {
     const b = document.createElement('button');
@@ -1386,7 +1419,9 @@ function boot() {
     const body = $('sheetBody');
     const head = document.createElement('p');
     head.className = 'stamp-head';
-    head.textContent = count === list.length ? '모두 찍었어요! 금색 머리띠를 받았어요.' : `${list.length}개 중 ${count}개를 찍었어요. 모두 찍으면 금색 머리띠를 받아요.`;
+    head.textContent = count === list.length ? '모두 찍었어요! 금색 머리띠를 받았어요.'
+      : goldEarned() ? `금색 머리띠를 받았어요. 새 게임 도장도 모아보세요. (${count}/${list.length})`
+      : `${list.length}개 중 ${count}개를 찍었어요. 모두 찍으면 금색 머리띠를 받아요.`;
     body.appendChild(head);
     const grid = document.createElement('div');
     grid.className = 'stamps';
@@ -1431,7 +1466,7 @@ function boot() {
     const s = stampOf(id);
     if (prevBest >= s.need || score < s.need) return '';
     const list = DOJANG.stamps, count = list.filter(stampDone).length;
-    if (count === list.length) goldBand.visible = true;
+    if (count === list.length) goldBand.visible = goldEarned();
     return `<p class="stamp-news">${s.name} 도장을 찍었어요! (${count}/${list.length})${count === list.length ? ' 금색 머리띠를 받았어요' : ''}</p>
       <div class="row"><button class="btn-sub js-share" data-text="${s.name} 도장을 찍었어요! 너도 해봐!">친구에게 자랑하기</button></div>`;
   }
@@ -1969,6 +2004,7 @@ function boot() {
     $('mCard').hidden = true;
     $('mCall').textContent = '';
     $('mFoot').textContent = mini.def.foot;
+    mPtr = null;
     mini.s = mini.def.init();
     mini.running = true;
     miniStats();
@@ -2007,9 +2043,29 @@ function boot() {
     if (!mini || !mini.running || !mini.def.tap) return;
     e.preventDefault();
     const r = mc.getBoundingClientRect();
+    // 끌기와 밀기를 쓰는 게임은 처음 닿은 손가락 하나만 따라간다
+    if (mini.def.up) {
+      if (mPtr !== null) return;
+      mPtr = e.pointerId;
+      mc.setPointerCapture(e.pointerId);
+    }
     mini.def.tap(mini.s, e.clientX - r.left, e.clientY - r.top);
   });
+  let mPtr = null;
+  mc.addEventListener('pointermove', e => {
+    if (e.pointerId !== mPtr || !mini || !mini.running || !mini.def.move) return;
+    const r = mc.getBoundingClientRect();
+    mini.def.move(mini.s, e.clientX - r.left, e.clientY - r.top);
+  });
+  ['pointerup', 'pointercancel'].forEach(type => mc.addEventListener(type, e => {
+    if (e.pointerId !== mPtr) return;
+    mPtr = null;
+    if (!mini || !mini.running || !mini.def.up) return;
+    const r = mc.getBoundingClientRect();
+    mini.def.up(mini.s, e.clientX - r.left, e.clientY - r.top, type === 'pointercancel');
+  }));
   function miniKey(e) {
+    if (mini && mini.running && mini.def.key) return mini.def.key(mini.s, e);
     if (e.code !== 'Space' || !mini || !mini.running || !mini.def.tap || mini.def.pointOnly) return;
     if (document.activeElement && document.activeElement.tagName === 'BUTTON') document.activeElement.blur();
     e.preventDefault();
@@ -2040,6 +2096,8 @@ function boot() {
   }
   const shuffled = list => list.map(v => [Math.random(), v]).sort((a, b) => a[0] - b[0]).map(p => p[1]);
   const object = (word, a, b) => word + ((word.charCodeAt(word.length - 1) - 44032) % 28 ? a : b);
+  const TIDY_MAX = 8, FOLD_TIME = 40;
+  const TIDY_KINDS = [{ name: '가방' }, { name: '도복' }, { name: '띠' }, { name: '보호대' }, { name: '빨래통' }];
 
   const MINI = {
     // 줄이 발밑에 올 때 공중에 있어야 한다
@@ -2296,8 +2354,369 @@ function boot() {
           }
         }
       }
+    },
+    // 바닥에 쌓이는 물건을 끌어서 제자리에 넣는다. 바닥이 가득 차면 끝난다
+    tidy: {
+      pointOnly: true, title: '탈의실 정리', unit: '개', labels: ['정리', '바닥'], foot: '물건을 끌어서 맞는 칸에 넣으세요',
+      help: `바닥에 떨어지는 가방, 도복, 띠, 보호대를 끌어서 맞는 칸에 넣으세요. 냄새나는 양말은 빨래통으로! 물건이 ${TIDY_MAX}개를 넘으면 끝나요.`,
+      init() {
+        const s = { count: 0, wrong: 0, items: [], next: 1.2, drag: null, hover: -1, callT: 0, flash: -1, flashT: 0 };
+        tidySpawn(s); tidySpawn(s);
+        return s;
+      },
+      stats: s => [s.count, `${s.items.length}/${TIDY_MAX}`],
+      tap(s, x, y) {
+        const L = tidyLayout(mW, mH);
+        let best = null, bestD = L.size * .85;
+        s.items.forEach(it => {
+          const p = tidyPos(L, it), d = Math.hypot(p.x - x, p.y - y);
+          if (d <= bestD) { best = it; bestD = d; }
+        });
+        if (!best) return;
+        s.items.splice(s.items.indexOf(best), 1);
+        s.items.push(best); // 집은 물건이 맨 위에 그려진다
+        s.drag = { it: best, x, y };
+        s.hover = tidyTarget(L, x, y);
+        thwack(200, .08);
+      },
+      move(s, x, y) {
+        if (!s.drag) return;
+        s.drag.x = x; s.drag.y = y;
+        s.hover = tidyTarget(tidyLayout(mW, mH), x, y);
+      },
+      up(s, x, y, cancelled) {
+        if (!s.drag) return;
+        const { it } = s.drag, L = tidyLayout(mW, mH), target = cancelled ? -1 : tidyTarget(L, x, y);
+        s.drag = null; s.hover = -1;
+        if (target === it.kind) {
+          s.items.splice(s.items.indexOf(it), 1);
+          s.count++;
+          s.flash = target; s.flashT = .25;
+          s.placed = s.placed || {};
+          s.placed[target] = it;
+          thwack(280 + (s.count % 8) * 25, .25);
+          if (s.count % 10 === 0) { miniCall(`${s.count}개!`, true); s.callT = .8; }
+        } else if (target >= 0) {
+          s.wrong++;
+          it.shake = .35;
+          miniCall(it.kind === 4 ? '양말은 빨래통으로!' : '여기가 아니에요');
+          s.callT = .8;
+          thwack(90, .25);
+        } else if (!cancelled) {
+          tidyPlace(L, it, x, y);
+        }
+        miniStats();
+      },
+      step(s, dt) {
+        s.next -= dt;
+        s.flashT = Math.max(0, s.flashT - dt);
+        s.items.forEach(it => { it.pop = Math.min(1, it.pop + dt / .18); it.shake = Math.max(0, (it.shake || 0) - dt); });
+        if (s.callT > 0) { s.callT -= dt; if (s.callT <= 0) miniCall(''); }
+        if (s.next <= 0) {
+          if (s.items.length >= TIDY_MAX) return finishMini(s.count, `바닥이 가득 찼어요. ${s.count}개를 정리했어요`);
+          tidySpawn(s);
+          s.next = Math.max(.62, 1.45 - s.count * .03);
+          miniStats();
+        }
+      },
+      draw(g, W, H, s) {
+        const L = tidyLayout(W, H), full = s.items.length >= TIDY_MAX - 2;
+        g.fillStyle = full ? '#e9cfc8' : '#e6e1d8'; g.fillRect(0, 0, W, H);
+        g.strokeStyle = 'rgba(120,105,85,.16)'; g.lineWidth = 1;
+        for (let y = L.floorTop + 24; y < H; y += 24) { g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke(); }
+        g.fillStyle = '#fafaf7'; g.fillRect(0, 0, W, L.shelfH + L.gap * 2);
+        TIDY_KINDS.forEach((k, i) => {
+          const r = L.cells[i], active = s.hover === i, lit = s.flash === i && s.flashT > 0;
+          g.fillStyle = lit ? '#cfeeda' : active ? '#fff3c4' : i === 4 ? '#9fb4c9' : '#e4e6e1';
+          g.fillRect(r.x, r.y, r.w, r.h);
+          g.strokeStyle = active ? '#c9960c' : 'rgba(22,31,56,.3)'; g.lineWidth = active ? 3 : 1.5;
+          g.strokeRect(r.x, r.y, r.w, r.h);
+          const placed = s.placed && s.placed[i];
+          g.globalAlpha = placed ? 1 : .3;
+          drawTidyItem(g, i, r.x + r.w / 2, r.y + r.h * .44, Math.min(r.w * .62, r.h * .55), placed ? placed.color : '#8d97b2');
+          g.globalAlpha = 1;
+          g.fillStyle = '#161f38'; g.textAlign = 'center'; g.textBaseline = 'alphabetic';
+          g.font = `700 ${Math.max(12, Math.min(15, r.w * .17))}px "Malgun Gothic", sans-serif`;
+          g.fillText(k.name, r.x + r.w / 2, r.y + r.h - 6);
+        });
+        s.items.forEach(it => {
+          if (s.drag && s.drag.it === it) return;
+          const p = tidyPos(L, it), k = calm ? 1 : .6 + .4 * it.pop;
+          const shake = it.shake > 0 && !calm ? Math.sin(it.shake * 50) * 5 : 0;
+          g.fillStyle = 'rgba(0,0,0,.14)'; g.beginPath(); g.ellipse(p.x, p.y + L.size * .44, L.size * .42, L.size * .1, 0, 0, 7); g.fill();
+          drawTidyItem(g, it.kind, p.x + shake, p.y, L.size * k, it.color);
+        });
+        if (s.drag) drawTidyItem(g, s.drag.it.kind, s.drag.x, s.drag.y - L.size * .45, L.size * 1.12, s.drag.it.color);
+      }
+    },
+    // 화살표대로 밀어 도복을 접고 띠를 묶는다. 시간 안에 몇 벌을 개는지 센다
+    fold: {
+      pointOnly: true, title: '도복 개기', unit: '벌', labels: ['갠 도복', '남은 시간'], foot: '화살표 방향으로 화면을 미세요 (PC는 방향키)',
+      help: `화살표 방향으로 화면을 밀어 소매와 몸판을 접고, 띠를 둘러 매듭을 묶으세요. ${FOLD_TIME}초 동안 몇 벌을 갤 수 있을까요? 방향을 틀리면 1초가 줄어요.`,
+      init: () => ({ count: 0, left: FOLD_TIME, steps: foldSteps(), i: 0, anim: 0, shake: 0, fly: 0, callT: 0, down: null }),
+      stats: s => [s.count, Math.ceil(s.left)],
+      tap(s, x, y) { s.down = { x, y, swiped: false }; },
+      move(s, x, y) {
+        if (!s.down || s.down.swiped) return;
+        const dx = x - s.down.x, dy = y - s.down.y;
+        if (Math.hypot(dx, dy) < 26) return;
+        s.down.swiped = true;
+        foldInput(s, Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up'));
+      },
+      up(s, x, y, cancelled) {
+        const down = s.down;
+        s.down = null;
+        if (down && !down.swiped && !cancelled) foldInput(s, 'tap');
+      },
+      key(s, e) {
+        const dir = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down', Space: 'tap', Enter: 'tap' }[e.code];
+        if (!dir) return;
+        if (document.activeElement && document.activeElement.tagName === 'BUTTON') document.activeElement.blur();
+        e.preventDefault();
+        if (!e.repeat) foldInput(s, dir);
+      },
+      step(s, dt) {
+        s.left -= dt;
+        s.anim = Math.max(0, s.anim - dt / .18);
+        s.fly = Math.max(0, s.fly - dt / .3);
+        s.shake = Math.max(0, s.shake - dt);
+        if (s.callT > 0) { s.callT -= dt; if (s.callT <= 0) miniCall(''); }
+        if (s.left <= 0) { s.left = 0; miniStats(); return finishMini(s.count, `${FOLD_TIME}초 동안 ${s.count}벌을 갰어요`); }
+        miniStats();
+      },
+      draw: drawFold
     }
   };
+  // ---------- 탈의실 정리 ----------
+  // 가방, 도복, 띠, 보호대는 선반 칸으로, 양말은 빨래통으로 간다
+  function tidyLayout(W, H) {
+    const gap = 6, shelfH = Math.max(76, Math.min(170, H * .27)), cw = (W - gap * 5) / 4;
+    const bw = Math.min(W * .27, 112, H * .24), size = Math.max(40, Math.min(64, Math.min(W, H) * .16));
+    const cells = [0, 1, 2, 3].map(i => ({ x: gap + i * (cw + gap), y: gap, w: cw, h: shelfH }));
+    cells.push({ x: W - bw - gap, y: H - bw - gap, w: bw, h: bw });
+    return { W, H, gap, shelfH, cells, size, floorTop: shelfH + gap * 2 };
+  }
+  function tidyTarget(L, x, y) {
+    // 칸은 넓게 잡아서 손가락으로도 쉽게 넣게 한다
+    if (y <= L.shelfH + L.gap + 18) return Math.max(0, Math.min(3, Math.floor((x - L.gap / 2) / (L.cells[0].w + L.gap))));
+    const b = L.cells[4];
+    return x >= b.x - 14 && y >= b.y - 14 ? 4 : -1;
+  }
+  const tidyPos = (L, it) => ({
+    x: L.size / 2 + 6 + it.u * (L.W - L.size - 12),
+    y: L.floorTop + L.size / 2 + it.v * Math.max(1, L.H - L.floorTop - L.size - 6)
+  });
+  function tidyPlace(L, it, x, y) {
+    it.u = Math.max(0, Math.min(1, (x - L.size / 2 - 6) / (L.W - L.size - 12)));
+    it.v = Math.max(0, Math.min(1, (y - L.floorTop - L.size / 2) / Math.max(1, L.H - L.floorTop - L.size - 6)));
+  }
+  function tidySpawn(s) {
+    const L = tidyLayout(mW, mH), roll = Math.random();
+    const kind = roll < .25 ? 0 : roll < .5 ? 1 : roll < .75 ? 2 : roll < .87 ? 3 : 4;
+    const color = kind === 2 ? BELTS[Math.floor(Math.random() * BELTS.length)].color : 0;
+    const it = { kind, color: '#' + color.toString(16).padStart(6, '0'), u: 0, v: 0, pop: 0, shake: 0 };
+    let best = null, bestGap = -1;
+    for (let n = 0; n < 14; n++) {
+      const c = { u: Math.random(), v: Math.random() }, p = tidyPos(L, c);
+      if (tidyTarget(L, p.x, p.y) === 4) continue;
+      const near = s.items.reduce((m, o) => { const q = tidyPos(L, o); return Math.min(m, Math.hypot(q.x - p.x, q.y - p.y)); }, 1e4);
+      if (near > bestGap) { bestGap = near; best = c; }
+    }
+    if (best) { it.u = best.u; it.v = best.v; }
+    s.items.push(it);
+  }
+  function drawTidyItem(g, kind, x, y, size, color) {
+    const u = size / 10;
+    g.save();
+    g.translate(x, y);
+    g.lineJoin = g.lineCap = 'round';
+    g.strokeStyle = '#1a1a1f'; g.lineWidth = Math.max(1.2, u * .35);
+    if (kind === 0) { // 도장 가방
+      g.beginPath(); g.moveTo(-u * 3, -u * 2); g.quadraticCurveTo(0, -u * 6, u * 3, -u * 2); g.lineWidth = u * .7; g.stroke();
+      g.lineWidth = Math.max(1.2, u * .35);
+      g.fillStyle = '#fbfbf8'; g.beginPath(); g.roundRect(-u * 4.4, -u * 2.6, u * 8.8, u * 6.4, u); g.fill(); g.stroke();
+      g.fillStyle = '#1a1a1f'; g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.font = `900 ${u * 1.5}px "Malgun Gothic", sans-serif`;
+      g.fillText('마스터', 0, u * 1.4);
+      g.fillStyle = '#b92a2c'; g.beginPath(); g.arc(0, -u * .9, u * .7, 0, 7); g.fill();
+    } else if (kind === 1) { // 개지 않은 도복
+      g.fillStyle = '#fbfbf8';
+      g.beginPath();
+      g.moveTo(-u * 2, -u * 3.8); g.lineTo(u * 2, -u * 3.8); g.lineTo(u * 4.6, -u * 1.2); g.lineTo(u * 3, u * .2);
+      g.lineTo(u * 2.4, -u * .6); g.lineTo(u * 2.4, u * 3.8); g.lineTo(-u * 2.4, u * 3.8); g.lineTo(-u * 2.4, -u * .6);
+      g.lineTo(-u * 3, u * .2); g.lineTo(-u * 4.6, -u * 1.2); g.closePath(); g.fill(); g.stroke();
+      g.lineWidth = u * .7;
+      g.beginPath(); g.moveTo(-u * 1.3, -u * 3.7); g.lineTo(0, -u * 1.4); g.lineTo(u * 1.3, -u * 3.7); g.stroke();
+    } else if (kind === 2) { // 돌돌 만 띠
+      g.lineWidth = u * 2.5; g.strokeStyle = '#1a1a1f';
+      g.beginPath(); g.arc(0, -u * .4, u * 2.4, 0, 7); g.moveTo(u * 2, u * 1.4); g.lineTo(u * 4, u * 3.4); g.stroke();
+      g.lineWidth = u * 1.9; g.strokeStyle = color;
+      g.beginPath(); g.arc(0, -u * .4, u * 2.4, 0, 7); g.moveTo(u * 2, u * 1.4); g.lineTo(u * 4, u * 3.4); g.stroke();
+    } else if (kind === 3) { // 정강이 보호대
+      g.fillStyle = '#d6322a'; g.beginPath(); g.roundRect(-u * 2.6, -u * 4.2, u * 5.2, u * 8.4, u * 1.8); g.fill(); g.stroke();
+      g.fillStyle = '#fbfbf8';
+      [-2, 0, 2].forEach(k => g.fillRect(-u * 2.6, (k - .35) * u, u * 5.2, u * .7));
+    } else { // 냄새나는 양말과 빨래통 표시
+      g.fillStyle = '#b5b8ae';
+      g.beginPath();
+      g.moveTo(-u * 1.2, -u * 2.2); g.lineTo(u * 1.6, -u * 2.2); g.lineTo(u * 1.6, u * 1.2); g.lineTo(u * 3.4, u * 2);
+      g.quadraticCurveTo(u * 4, u * 3.8, u * 2.2, u * 3.8); g.lineTo(-u * .6, u * 3.8); g.quadraticCurveTo(-u * 1.4, u * 3.4, -u * 1.2, u * 2.4);
+      g.closePath(); g.fill(); g.stroke();
+      g.strokeStyle = '#3f9a3f'; g.lineWidth = u * .55;
+      [-1.2, .4, 2].forEach(k => {
+        g.beginPath(); g.moveTo(k * u, -u * 2.9);
+        g.bezierCurveTo((k - .7) * u, -u * 3.5, (k + .7) * u, -u * 4, k * u, -u * 4.7);
+        g.stroke();
+      });
+    }
+    g.restore();
+  }
+
+  // ---------- 도복 개기 ----------
+  function foldSteps() {
+    const pick = (a, b) => Math.random() < .5 ? a : b;
+    const first = pick('L', 'R'), second = first === 'L' ? 'R' : 'L';
+    const sleeve = side => side === 'L'
+      ? { part: 'sleeveL', dir: 'right', say: '왼쪽 소매를 안으로' }
+      : { part: 'sleeveR', dir: 'left', say: '오른쪽 소매를 안으로' };
+    const v = pick('up', 'down'), h = pick('left', 'right'), b = pick('left', 'right');
+    return [
+      sleeve(first), sleeve(second),
+      { part: 'foldV', dir: v, say: v === 'up' ? '아래를 위로 접어요' : '위를 아래로 접어요' },
+      { part: 'foldH', dir: h, say: h === 'right' ? '왼쪽을 오른쪽으로 접어요' : '오른쪽을 왼쪽으로 접어요' },
+      { part: 'belt', dir: b, say: '띠를 둘러요' },
+      { part: 'knot', dir: 'tap', say: '눌러서 매듭을 묶어요' }
+    ];
+  }
+  function foldInput(s, dir) {
+    const cur = s.steps[s.i];
+    if (cur.dir === 'tap' ? false : dir === 'tap') return; // 잘못 살짝 닿은 것은 벌주지 않는다
+    if (cur.dir === 'tap' || dir === cur.dir) {
+      s.i++;
+      s.anim = calm ? 0 : 1;
+      thwack(200 + s.i * 30, .18);
+      if (s.i >= s.steps.length) {
+        s.count++;
+        s.fly = calm ? 0 : 1;
+        s.flyBelt = beltStyle();
+        s.steps = foldSteps();
+        s.i = 0; s.anim = 0;
+        thwack(440, .3);
+        miniCall(s.count % 5 === 0 ? `${s.count}벌!` : '', true);
+        s.callT = .8;
+        miniStats();
+      }
+      return;
+    }
+    s.left = Math.max(0, s.left - 1);
+    s.shake = .3;
+    miniCall('방향이 달라요');
+    s.callT = .7;
+    thwack(90, .25);
+  }
+  function drawFold(g, W, H, s) {
+    g.fillStyle = '#e6e1d8'; g.fillRect(0, 0, W, H);
+    g.strokeStyle = 'rgba(120,105,85,.16)'; g.lineWidth = 1;
+    for (let y = 24; y < H; y += 24) { g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke(); }
+    // 남은 시간 막대
+    g.fillStyle = 'rgba(22,31,56,.15)'; g.fillRect(0, 0, W, 6);
+    g.fillStyle = s.left < 8 ? '#d6322a' : '#2c8a43'; g.fillRect(0, 0, W * s.left / FOLD_TIME, 6);
+
+    const tw = Math.min(W * .42, H * .3), th = tw * 1.25, sl = tw * .48, sh = tw * .34;
+    const cur = s.steps[s.i], t = 1 - s.anim, eased = t * t * (3 - 2 * t);
+    const prog = part => {
+      const i = s.steps.findIndex(x => x.part === part);
+      return i < s.i - 1 ? 1 : i === s.i - 1 ? eased : 0;
+    };
+    const pL = prog('sleeveL'), pR = prog('sleeveR'), fv = prog('foldV'), fh = prog('foldH'), bp = prog('belt');
+    const vDir = s.steps.find(x => x.part === 'foldV').dir, hDir = s.steps.find(x => x.part === 'foldH').dir;
+    const front = '#fbfbf8', back = '#e4e4de';
+    const sheet = (x, y, w, h, fill) => {
+      g.fillStyle = fill; g.fillRect(x, y, w, h);
+      g.strokeStyle = 'rgba(22,31,56,.55)'; g.lineWidth = 1.5; g.strokeRect(x, y, w, h);
+    };
+    const cx = W / 2, cy = H * .52;
+    const oy = (vDir === 'up' ? th / 4 : -th / 4) * fv, ox = (hDir === 'right' ? -tw / 4 : tw / 4) * fh;
+    const shakeX = s.shake > 0 && !calm ? Math.sin(s.shake * 50) * 6 : 0;
+    g.save();
+    g.translate(cx + ox + shakeX, cy + oy);
+    const sleeve = (side, p) => {
+      const w = sl * Math.cos(p * Math.PI);
+      const hinge = side * tw / 2;
+      sheet(Math.min(hinge, hinge + side * w), -th / 2 + th * .04, Math.abs(w), sh, w < 0 ? back : front);
+    };
+    if (fv === 0) {
+      sheet(-tw / 2, -th / 2, tw, th, front);
+      g.strokeStyle = '#1a1a1f'; g.lineWidth = tw * .05; g.lineCap = 'round';
+      g.beginPath(); g.moveTo(-tw * .16, -th / 2 + 2); g.lineTo(0, -th / 2 + tw * .32); g.lineTo(tw * .16, -th / 2 + 2); g.stroke();
+      sleeve(-1, pL); sleeve(1, pR);
+    } else if (fh === 0) {
+      // 위아래 접기: 접히지 않는 절반은 그대로 두고 나머지 절반을 뒤집는다
+      const keepTop = vDir === 'up';
+      sheet(-tw / 2, keepTop ? -th / 2 : 0, tw, th / 2, front);
+      if (keepTop && fv < 1) {
+        g.save(); g.beginPath(); g.rect(-tw, -th / 2, tw * 2, th / 2); g.clip();
+        sleeve(-1, 1); sleeve(1, 1); g.restore();
+      }
+      const f = th / 2 * Math.cos(fv * Math.PI) * (keepTop ? 1 : -1);
+      sheet(-tw / 2, Math.min(0, f), tw, Math.abs(f), fv > .5 ? back : front);
+    } else {
+      const keepRight = hDir === 'right', top = -th / 2 + (vDir === 'up' ? 0 : th / 2);
+      sheet(keepRight ? 0 : -tw / 2, top, tw / 2, th / 2, back);
+      const f = tw / 2 * Math.cos(fh * Math.PI) * (keepRight ? -1 : 1);
+      sheet(Math.min(0, f), top, Math.abs(f), th / 2, fh > .5 ? back : front);
+    }
+    if (bp > 0) {
+      const dirSign = s.steps.find(x => x.part === 'belt').dir === 'right' ? 1 : -1, w = tw * .56 * bp, bh = th * .08;
+      const yMid = (vDir === 'up' ? -th / 4 : th / 4), xMid = hDir === 'right' ? tw / 4 : -tw / 4;
+      g.fillStyle = beltStyle(); g.strokeStyle = '#1a1a1f'; g.lineWidth = 1.5;
+      const x0 = dirSign > 0 ? xMid - tw * .28 : xMid + tw * .28 - w;
+      g.fillRect(x0, yMid - bh / 2, w, bh); g.strokeRect(x0, yMid - bh / 2, w, bh);
+    }
+    g.restore();
+
+    // 다 갠 도복은 아래쪽에 쌓인다
+    const pw = Math.max(34, tw * .34), ph = Math.max(7, tw * .06);
+    const slot = n => ({ x: 14 + Math.floor(n / 5) * (pw + 10), y: H - 14 - ph - (n % 5) * (ph + 2) });
+    const shown = s.fly > 0 ? s.count - 1 : s.count;
+    const packet = (x, y, w, h, belt) => {
+      g.fillStyle = '#fbfbf8'; g.strokeStyle = 'rgba(22,31,56,.55)'; g.lineWidth = 1;
+      g.fillRect(x, y, w, h); g.strokeRect(x, y, w, h);
+      g.fillStyle = belt; g.fillRect(x + w * .44, y, w * .12, h);
+    };
+    for (let n = 0; n < Math.min(shown, 30); n++) { const p = slot(n); packet(p.x, p.y, pw, ph, beltStyle()); }
+    if (s.fly > 0) {
+      const k = 1 - s.fly, p = slot(Math.min(29, s.count - 1)), w = tw / 2 + (pw - tw / 2) * k, h = th / 2 + (ph - th / 2) * k;
+      packet(cx - tw / 4 + (p.x - cx + tw / 4) * k, cy - th / 4 + (p.y - cy + th / 4) * k, w, h, s.flyBelt);
+    }
+
+    // 지금 할 일
+    g.fillStyle = '#161f38'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.font = `${Math.min(30, W * .068)}px "Black Han Sans", "Malgun Gothic", sans-serif`;
+    g.fillText(cur.say, W / 2, Math.max(36, cy - th / 2 - sh - 12));
+    const bounce = calm ? 0 : Math.sin(performance.now() / 130) * 7;
+    // 접힌 도복은 언제나 화면 가운데에 온다
+    const ax = cx + shakeX + (cur.part === 'sleeveL' ? -tw / 2 - sl / 2 + tw * .08 : cur.part === 'sleeveR' ? tw / 2 + sl / 2 - tw * .08 : 0);
+    const ay = cy + (cur.part.startsWith('sleeve') ? -th / 2 + sh * .6 : 0);
+    if (cur.dir === 'tap') {
+      const xm = ax, r = Math.max(16, tw * .13) + (calm ? 0 : Math.sin(performance.now() / 130) * 3);
+      g.lineWidth = 4; g.strokeStyle = '#c9960c';
+      g.beginPath(); g.arc(xm, ay, r, 0, 7); g.stroke();
+      g.fillStyle = beltStyle(); g.strokeStyle = '#1a1a1f'; g.lineWidth = 1.5;
+      g.fillRect(xm - r * .35, ay - r * .35, r * .7, r * .7); g.strokeRect(xm - r * .35, ay - r * .35, r * .7, r * .7);
+    } else {
+      const a = { right: 0, down: Math.PI / 2, left: Math.PI, up: -Math.PI / 2 }[cur.dir], len = Math.max(44, tw * .5), wide = Math.max(12, tw * .1);
+      g.save();
+      g.translate(ax + Math.cos(a) * bounce, ay + Math.sin(a) * bounce);
+      g.rotate(a);
+      g.fillStyle = '#e0a81c'; g.strokeStyle = '#161f38'; g.lineWidth = 2; g.lineJoin = 'round';
+      g.beginPath();
+      g.moveTo(-len / 2, -wide / 2); g.lineTo(len * .1, -wide / 2); g.lineTo(len * .1, -wide * 1.2); g.lineTo(len / 2, 0);
+      g.lineTo(len * .1, wide * 1.2); g.lineTo(len * .1, wide / 2); g.lineTo(-len / 2, wide / 2); g.closePath();
+      g.fill(); g.stroke();
+      g.restore();
+    }
+  }
   // 컵 피라미드 자리: 아래층부터 쌓는다
   function cupLevel(s) {
     const n = s.level === 0 ? 3 : 4;
@@ -2395,7 +2814,7 @@ function boot() {
   function openGameMenu() {
     openSheet('게임');
     const body = $('sheetBody');
-    [['1관', ['미트 격파', '축구', '농구', '줄넘기', '품새 퀴즈']], ['2관', ['매트 달리기', '쿠션 벽 터치']], ['휴게실', ['컵 쌓기']]].forEach(([room, names]) => {
+    [['1관', ['미트 격파', '축구', '농구', '줄넘기', '품새 퀴즈']], ['2관', ['매트 달리기', '쿠션 벽 터치']], ['휴게실', ['컵 쌓기']], ['탈의실', ['탈의실 정리', '도복 개기']]].forEach(([room, names]) => {
       const h = document.createElement('h3');
       h.className = 'menu-room';
       h.textContent = room;
