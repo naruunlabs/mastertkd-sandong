@@ -190,6 +190,19 @@ th { font-size: 13px; color: var(--ink-soft); }
 .quiz-options button.right { background: #2c8a43; color: #fff; }
 .quiz-options button.wrong { background: var(--hong); color: #fff; }
 .quiz-options button:disabled { cursor: default; }
+.doodle-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 10px 0; }
+.doodle-grid canvas { width: 100%; aspect-ratio: 1; display: block; background: #fff; border: 2px solid var(--ink); }
+.doodle-note { margin: 0; font-size: 14px; color: var(--ink-soft); }
+.doodle-main { display: block; width: 100%; margin-top: 10px; padding: 12px; border: 0; background: var(--hong); color: #fff; font-size: 16px; font-weight: 700; }
+.doodle-main:disabled { opacity: .5; }
+.doodle-pad { display: block; width: min(100%, 44dvh); aspect-ratio: 1; margin: 0 auto; background: #fff; border: 2px solid var(--ink); touch-action: none; }
+.doodle-ink { height: 8px; margin: 8px auto; width: min(100%, 44dvh); background: #dfe2e8; }
+.doodle-ink i { display: block; height: 100%; width: 100%; background: var(--ink); }
+.doodle-row { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px; margin-top: 8px; }
+.doodle-color { width: 40px; height: 40px; border: 2px solid #fff; outline: 1px solid var(--line); padding: 0; }
+.doodle-color.on { outline: 3px solid var(--ink); }
+.doodle-tool { border: 1px solid var(--line); background: #fff; color: var(--ink); padding: 9px 14px; font-size: 14px; font-weight: 700; }
+.doodle-code { width: 110px; padding: 9px; font-size: 16px; border: 1px solid var(--line); text-align: center; }
 .menu-room { margin: 12px 0 6px; font-family: var(--font-display); font-weight: 400; font-size: 18px; }
 .menu-room:first-child { margin-top: 0; }
 .menu-row { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -314,6 +327,11 @@ const DOJANG = {
   share: { url: 'https://mastertkd-sandong.kr/3d/', text: '우리 태권도장을 3D로 걸어 다니며 둘러보세요.' },
   // 공개 키라 페이지에 있어도 된다. 이 키로는 방문자 함수 말고 표를 읽거나 쓸 수 없다
   visits: { host: 'mastertkd-sandong.kr', site: 'mastertkd-sandong', url: 'https://ebgoolsymyzkftvavpyj.supabase.co/rest/v1/rpc/dojang_visit', key: 'sb_publishable_378Ep28vw4J9Sia2OsN6-Q_gqnu5OQJ' },
+  // 낙서장: 정해진 색으로 그린 선의 좌표만 저장한다. 다른 사람에게는 24시간 뒤에 보인다
+  doodle: {
+    site: 'mastertkd-sandong', rpc: 'https://ebgoolsymyzkftvavpyj.supabase.co/rest/v1/rpc/', key: 'sb_publishable_378Ep28vw4J9Sia2OsN6-Q_gqnu5OQJ',
+    colors: ['#1a1a1f', '#d6322a', '#1d4fc2', '#f0c419', '#2c8a43', '#6a3fa8'], colorNames: ['검정', '빨강', '파랑', '노랑', '초록', '보라']
+  },
   stamps: [
     { id: 'mit', name: '미트 격파', need: 600, unit: '점' },
     { id: 'soccer', name: '축구', need: 300, unit: '점' },
@@ -998,6 +1016,31 @@ function boot() {
     cupGroup.add(cup);
   });
   solid(6.15, 21.1, 7, 21.5);
+  // 낙서장: 12칸을 한 장의 그림으로 만들어 오래된 폰에서도 가볍게 한다
+  const doodleGroup = new THREE.Group();
+  scene.add(doodleGroup);
+  box(4.35, 18.82, 6.75, 18.88, .42, 1.08, 0xf4f4f0, null, doodleGroup);
+  [4.5, 6.6].forEach(x => box(x - .03, 18.8, x + .03, 18.9, 0, .42, 0x5a616d, null, doodleGroup));
+  const doodleCell = 128;
+  const doodleTex = canvasTex(doodleCell * 6, doodleCell * 2, g => paintDoodleWall(g, []));
+  const doodleBoard = decal(doodleTex, 2.28, .76, 5.55, .96, 18.89, 's', null);
+  doodleGroup.add(doodleBoard);
+  solid(4.35, 18.75, 6.75, 18.95);
+  function paintDoodleWall(g, list) {
+    g.fillStyle = '#f7f7f4'; g.fillRect(0, 0, doodleCell * 6, doodleCell * 2);
+    for (let i = 0; i < 12; i++) {
+      const x = (i % 6) * doodleCell, y = Math.floor(i / 6) * doodleCell, pad = 5;
+      g.fillStyle = '#ffffff'; g.fillRect(x + pad, y + pad, doodleCell - pad * 2, doodleCell - pad * 2);
+      g.strokeStyle = list[i] ? '#161f38' : '#c9ccd3'; g.lineWidth = 3;
+      g.strokeRect(x + pad, y + pad, doodleCell - pad * 2, doodleCell - pad * 2);
+      if (list[i]) {
+        g.save();
+        g.translate(x + pad, y + pad);
+        drawDoodle(g, doodleBytes(list[i].data), doodleCell - pad * 2);
+        g.restore();
+      }
+    }
+  }
   // 창가 화분
   [4.6, 5.3, 6.2].forEach(x => { cyl(.09, .14, x, .9, 21.8, 0xf4f4f0); const leaf = new THREE.Mesh(new THREE.SphereGeometry(.16, 8, 6), lam(0x4d9a3a)); leaf.position.set(x, 1.15, 21.8); scene.add(leaf); });
 
@@ -1134,6 +1177,8 @@ function boot() {
       label: pinLabel('쿠션 터치', .5, 2.7, 8, '#d9761f'), open: () => openMini('pads') },
     { name: '컵 쌓기', noChip: true, action: '컵 쌓기 시작', stand: [6.2, 20.3], objs: [cupGroup],
       label: pinLabel('컵 쌓기', 6.55, 2.2, 21.3, '#2c8a43'), open: () => openMini('cups') },
+    { name: '낙서장', noChip: true, action: '낙서장 보기', stand: [4.9, 19.7], objs: [doodleGroup],
+      label: pinLabel('낙서장', 5.55, 2.15, 18.9, '#b92a2c'), open: () => openDoodle() },
     { name: '탈의실 정리', noChip: true, action: '탈의실 정리 시작', stand: [1.75, 19.2], objs: [tidyGroup],
       label: pinLabel('탈의실 정리', .9, 2.4, 19.2, '#1d5dc2'), open: () => openMini('tidy') },
     { name: '도복 개기', noChip: true, action: '도복 개기 시작', stand: [.8, 15.3], objs: [foldGroup],
@@ -1469,6 +1514,204 @@ function boot() {
     if (count === list.length) goldBand.visible = goldEarned();
     return `<p class="stamp-news">${s.name} 도장을 찍었어요! (${count}/${list.length})${count === list.length ? ' 금색 머리띠를 받았어요' : ''}</p>
       <div class="row"><button class="btn-sub js-share" data-text="${s.name} 도장을 찍었어요! 너도 해봐!">친구에게 자랑하기</button></div>`;
+  }
+
+  // ---------- 낙서장 ----------
+  const DOODLE_MAX = 3000; // 1장 최대 바이트. 넘으면 잉크가 떨어진다
+  const doodleCall = async (fn, body) => {
+    const d = DOJANG.doodle;
+    const res = await fetch(d.rpc + fn, {
+      method: 'POST',
+      headers: { apikey: d.key, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    if (!res.ok) throw new Error('doodle ' + res.status);
+    return res.json();
+  };
+  const doodleMine = () => {
+    try {
+      return JSON.parse(store.get('dojang-doodle-mine') || '[]').filter(m => Date.now() - m.at < 864e5 && typeof m.data === 'string');
+    } catch (e) { return []; }
+  };
+  let doodlePublic = [];
+  // 내가 그린 것은 내 폰에서 바로 보이고, 나머지는 24시간이 지난 공개 그림이다
+  function doodleWallList() {
+    const mine = doodleMine(), ids = new Set(mine.map(m => m.id));
+    return mine.concat(doodlePublic.filter(p => !ids.has(p.id))).slice(0, 12);
+  }
+  function refreshDoodleWall() {
+    paintDoodleWall(doodleTex.image.getContext('2d'), doodleWallList());
+    doodleTex.needsUpdate = true;
+  }
+  async function loadDoodles() {
+    try {
+      doodlePublic = await doodleCall('dojang_doodle_wall', { p_site: DOJANG.doodle.site });
+    } catch (e) { doodlePublic = []; } // 실패해도 둘러보기에는 영향이 없고 벽만 빈다
+    refreshDoodleWall();
+  }
+  refreshDoodleWall();
+  loadDoodles();
+  function doodleBytes(b64) {
+    try {
+      const s = atob(b64), out = new Uint8Array(s.length);
+      for (let i = 0; i < s.length; i++) out[i] = s.charCodeAt(i);
+      return out;
+    } catch (e) { return new Uint8Array(0); }
+  }
+  // 255, 색 번호 다음에 x, y가 이어진다. 좌표는 0~254
+  function drawDoodle(g, bytes, size) {
+    const k = size / 254, colors = DOJANG.doodle.colors;
+    g.lineCap = g.lineJoin = 'round';
+    g.lineWidth = Math.max(1.5, 6 * k);
+    let i = 0, open = false, first = false;
+    while (i + 1 < bytes.length) {
+      if (bytes[i] === 255) {
+        if (open) g.stroke();
+        g.strokeStyle = colors[bytes[i + 1]] || colors[0];
+        g.beginPath();
+        open = first = true;
+      } else if (open) {
+        const x = bytes[i] * k, y = bytes[i + 1] * k;
+        if (first) { g.moveTo(x, y); first = false; }
+        g.lineTo(x, y);
+      }
+      i += 2;
+    }
+    if (open) g.stroke();
+  }
+  function openDoodle(note) {
+    openSheet('낙서장');
+    const body = $('sheetBody');
+    const list = doodleWallList();
+    const head = document.createElement('p');
+    head.className = 'doodle-note';
+    head.textContent = note || '하루에 한 장 그릴 수 있어요. 내가 그린 그림은 바로 보이고, 친구들에게는 하루 뒤에 보여요.';
+    body.appendChild(head);
+    if (list.length) {
+      const grid = document.createElement('div');
+      grid.className = 'doodle-grid';
+      list.forEach(item => {
+        const c = document.createElement('canvas');
+        c.width = c.height = 220;
+        c.setAttribute('role', 'img');
+        c.setAttribute('aria-label', '아이가 그린 낙서');
+        drawDoodle(c.getContext('2d'), doodleBytes(item.data), 220);
+        grid.appendChild(c);
+      });
+      body.appendChild(grid);
+    }
+    const go = document.createElement('button');
+    go.className = 'doodle-main';
+    go.textContent = '그리러 가기';
+    go.addEventListener('click', openDoodlePad);
+    body.appendChild(go);
+  }
+  function openDoodlePad() {
+    openSheet('낙서 그리기');
+    const body = $('sheetBody'), colors = DOJANG.doodle.colors;
+    const pad = document.createElement('canvas');
+    pad.className = 'doodle-pad';
+    pad.width = pad.height = 508;
+    pad.setAttribute('aria-label', '그림 그리는 곳');
+    const g = pad.getContext('2d');
+    const inkBar = document.createElement('div'); inkBar.className = 'doodle-ink';
+    const ink = document.createElement('i'); inkBar.appendChild(ink);
+    let strokes = [], color = 0, drawing = null;
+    const used = () => strokes.reduce((n, s) => n + 2 + s.pts.length, 0);
+    const toBytes = () => {
+      const out = [];
+      strokes.forEach(s => out.push(255, s.color, ...s.pts));
+      return out;
+    };
+    const redraw = () => {
+      g.clearRect(0, 0, 508, 508);
+      drawDoodle(g, Uint8Array.from(toBytes()), 508);
+      ink.style.width = Math.max(0, 100 - used() / DOODLE_MAX * 100) + '%';
+      send.disabled = !strokes.length;
+    };
+    const pos = e => {
+      const r = pad.getBoundingClientRect();
+      const clamp = v => Math.max(0, Math.min(254, Math.round(v)));
+      return [clamp((e.clientX - r.left) / r.width * 254), clamp((e.clientY - r.top) / r.height * 254)];
+    };
+    pad.addEventListener('pointerdown', e => {
+      if (drawing || used() + 6 > DOODLE_MAX) return;
+      e.preventDefault();
+      pad.setPointerCapture(e.pointerId);
+      const [x, y] = pos(e);
+      drawing = { id: e.pointerId, stroke: { color, pts: [x, y, x, y] } };
+      strokes.push(drawing.stroke);
+      redraw();
+    });
+    pad.addEventListener('pointermove', e => {
+      if (!drawing || e.pointerId !== drawing.id) return;
+      const [x, y] = pos(e), p = drawing.stroke.pts;
+      // 가까운 점은 건너뛰어 용량을 아낀다
+      if (Math.hypot(x - p[p.length - 2], y - p[p.length - 1]) < 3 || used() + 2 > DOODLE_MAX) return;
+      p.push(x, y);
+      redraw();
+    });
+    const end = e => { if (drawing && e.pointerId === drawing.id) drawing = null; };
+    pad.addEventListener('pointerup', end);
+    pad.addEventListener('pointercancel', end);
+
+    const palette = document.createElement('div'); palette.className = 'doodle-row';
+    colors.forEach((c, i) => {
+      const b = document.createElement('button');
+      b.className = 'doodle-color' + (i === 0 ? ' on' : '');
+      b.style.background = c;
+      b.setAttribute('aria-label', DOJANG.doodle.colorNames[i]);
+      b.addEventListener('click', () => {
+        color = i;
+        [...palette.children].forEach(x => x.classList.toggle('on', x === b));
+      });
+      palette.appendChild(b);
+    });
+    const tools = document.createElement('div'); tools.className = 'doodle-row';
+    const tool = (label, fn) => {
+      const b = document.createElement('button');
+      b.className = 'doodle-tool'; b.textContent = label;
+      b.addEventListener('click', fn);
+      tools.appendChild(b);
+    };
+    tool('한 번 되돌리기', () => { strokes.pop(); redraw(); });
+    tool('모두 지우기', () => { strokes = []; redraw(); });
+    tool('목록으로', () => openDoodle());
+    const code = document.createElement('input');
+    code.className = 'doodle-code';
+    code.inputMode = 'numeric'; code.autocomplete = 'off'; code.maxLength = 8;
+    code.placeholder = '도장 코드';
+    code.setAttribute('aria-label', '도장에 붙어 있는 코드');
+    code.value = store.get('dojang-doodle-code') || '';
+    tools.appendChild(code);
+    const msg = document.createElement('p'); msg.className = 'doodle-note'; msg.setAttribute('aria-live', 'polite');
+    msg.style.textAlign = 'center'; msg.style.marginTop = '8px';
+    const send = document.createElement('button');
+    send.className = 'doodle-main'; send.textContent = '벽에 걸기';
+    send.addEventListener('click', async () => {
+      const data = btoa(String.fromCharCode(...toBytes()));
+      if (!code.value.trim()) { msg.textContent = '도장에 붙어 있는 코드를 넣어주세요.'; code.focus(); return; }
+      send.disabled = true;
+      msg.textContent = '보내는 중이에요';
+      try {
+        let device = store.get('dojang-doodle-device');
+        if (!device) { device = crypto.randomUUID(); store.set('dojang-doodle-device', device); }
+        const r = await doodleCall('dojang_doodle_submit', { p_site: DOJANG.doodle.site, p_code: code.value.trim(), p_device: device, p_data: data });
+        if (r.id) {
+          store.set('dojang-doodle-code', code.value.trim());
+          store.set('dojang-doodle-mine', JSON.stringify([{ id: r.id, data, at: Date.now() }].concat(doodleMine()).slice(0, 3)));
+          refreshDoodleWall();
+          thwack(420, .25);
+          return openDoodle('벽에 걸었어요! 친구들에게는 하루 뒤에 보여요.');
+        }
+        msg.textContent = { code: '코드가 맞지 않아요. 도장에 붙어 있는 코드를 확인해주세요.', device: '오늘은 이미 한 장 그렸어요. 내일 또 그려주세요.', full: '오늘 낙서장이 가득 찼어요. 내일 다시 와주세요.' }[r.error] || '보내지 못했어요. 다시 해주세요.';
+      } catch (e) {
+        msg.textContent = '지금은 보낼 수 없어요. 잠시 뒤에 다시 해주세요.';
+      }
+      send.disabled = !strokes.length;
+    });
+    body.append(pad, inkBar, palette, tools, send, msg);
+    redraw();
   }
 
   function openPhotos(room) {
@@ -2814,7 +3057,7 @@ function boot() {
   function openGameMenu() {
     openSheet('게임');
     const body = $('sheetBody');
-    [['1관', ['미트 격파', '축구', '농구', '줄넘기', '품새 퀴즈']], ['2관', ['매트 달리기', '쿠션 벽 터치']], ['휴게실', ['컵 쌓기']], ['탈의실', ['탈의실 정리', '도복 개기']]].forEach(([room, names]) => {
+    [['1관', ['미트 격파', '축구', '농구', '줄넘기', '품새 퀴즈']], ['2관', ['매트 달리기', '쿠션 벽 터치']], ['휴게실', ['컵 쌓기', '낙서장']], ['탈의실', ['탈의실 정리', '도복 개기']]].forEach(([room, names]) => {
       const h = document.createElement('h3');
       h.className = 'menu-room';
       h.textContent = room;
