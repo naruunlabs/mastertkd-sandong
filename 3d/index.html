@@ -1553,12 +1553,8 @@ function boot() {
       : `${list.length}개 중 ${count}개를 찍었어요. 모두 찍으면 금메달을 받아요.`;
     body.appendChild(head);
     const guide = document.createElement('p');
-    guide.textContent = '하고 싶은 게임을 누르세요! 목표 기록을 넘으면 도장을 찍고, 모두 모으면 캐릭터가 금메달을 목에 걸어요. 오늘의 도전은 이전 최고 기록도 인정하는 누적 도전이에요.';
+    guide.textContent = '하고 싶은 게임을 누르세요! 목표 기록을 넘으면 도장을 찍고, 모두 모으면 캐릭터가 금메달을 목에 걸어요.';
     body.appendChild(guide);
-    const savedNote = document.createElement('p');
-    savedNote.className = 'board-foot';
-    savedNote.textContent = '최고 기록·도장·금메달은 지금 사용하는 기기의 이 브라우저에 저장돼요. 같은 브라우저로 다시 오면 이어지지만, 다른 기기와는 공유되지 않고 인터넷 사용 기록에서 사이트 데이터를 지우면 사라져요. 시크릿 모드에서는 창을 닫으면 사라질 수 있어요.';
-    body.appendChild(savedNote);
     const grid = document.createElement('div');
     grid.className = 'stamps';
     list.forEach(s => {
