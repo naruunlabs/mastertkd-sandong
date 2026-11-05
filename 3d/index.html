@@ -323,7 +323,7 @@ const DOJANG = {
       { title: '오시는 길', text: '경북 구미시 산동읍 신당2로 29 대호프라자 8층', links: [['네이버 지도 보기', 'https://map.naver.com/p/entry/place/1252319234']] }
     ]}
   ],
-  // 도장깨기: 게임별 최고 기록이 need 이상이면 도장을 찍는다. 기준은 여기서 바꾼다.
+  // 오늘의 도전: 게임별 최고 기록이 need 이상이면 도장을 찍는다. 기준은 여기서 바꾼다.
   share: { url: 'https://mastertkd-sandong.kr/3d/', text: '우리 태권도장을 3D로 걸어 다니며 둘러보세요.' },
   // 공개 키라 페이지에 있어도 된다. 이 키로는 방문자 함수 말고 표를 읽거나 쓸 수 없다
   visits: { host: 'mastertkd-sandong.kr', site: 'mastertkd-sandong', url: 'https://ebgoolsymyzkftvavpyj.supabase.co/rest/v1/rpc/dojang_visit', key: 'sb_publishable_378Ep28vw4J9Sia2OsN6-Q_gqnu5OQJ' },
@@ -908,6 +908,27 @@ function boot() {
   box(10.1, 14.1, 10.98, 14.55, .86, .05, 0xf1ead2); box(10.1, 14.1, 10.98, 14.55, .36, .04, 0xf1ead2);
   box(10.12, 14.14, 10.16, 14.18, 0, .9, 0xf1ead2); box(10.92, 14.14, 10.96, 14.18, 0, .9, 0xf1ead2);
   box(10.12, 14.47, 10.16, 14.51, 0, .9, 0xf1ead2); box(10.92, 14.47, 10.96, 14.51, 0, .9, 0xf1ead2);
+  // TV 옆 선반 위: 도전 목록으로 들어가는 안내판.
+  const challengeStand = new THREE.Group();
+  scene.add(challengeStand);
+  box(10.29, 14.25, 10.79, 14.48, .91, .035, 0x20283f, null, challengeStand);
+  box(10.50, 14.30, 10.58, 14.39, .945, .12, 0xd9a93a, null, challengeStand);
+  box(10.14, 14.30, 10.94, 14.36, 1.02, .59, 0x20283f, null, challengeStand);
+  const challengeDraw = (g, w, h) => {
+    g.fillStyle = '#20283f'; g.fillRect(0, 0, w, h);
+    g.strokeStyle = '#d9a93a'; g.lineWidth = 8; g.strokeRect(8, 8, w - 16, h - 16);
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillStyle = '#f8d56a'; g.font = 'bold 66px "Malgun Gothic", sans-serif';
+    g.fillText('오늘의 도전', w / 2, 68);
+    g.fillStyle = '#fff'; g.font = 'bold 29px "Malgun Gothic", sans-serif';
+    g.fillText('게임하고 도장을 모아요!', w / 2, 131);
+    g.fillStyle = '#f8d56a'; g.font = 'bold 30px "Malgun Gothic", sans-serif';
+    g.fillText('눌러서 도전하기 →', w / 2, 194);
+  };
+  const challengeTex = canvasTex(512, 256, challengeDraw);
+  const challengeFace = decal(challengeTex, .76, .55, 10.54, 1.315, 14.365, 's');
+  challengeStand.add(challengeFace);
+  redraws.push(() => { challengeDraw(challengeTex.image.getContext('2d'), 512, 256); challengeTex.needsUpdate = true; });
   // 출석 화면
   box(9.42, 14.12, 10.05, 14.62, 0, .28, 0xf4f4f0); box(9.42, 14.12, 10.05, 14.62, .28, .03, 0xc9a26b);
   box(9.46, 14.14, 10.02, 14.2, .31, .62, 0xf4f4f0);
@@ -1157,7 +1178,7 @@ function boot() {
   const BELTS = DOJANG.belts;
   const savedBelt = BELTS.find(b => b.name === store.get('dojang-belt')) || BELTS[0];
   const me = makeChar(savedBelt.color, 1.05);
-  // 도장깨기를 모두 마치면 쓰는 금색 머리띠
+  // 오늘의 도전를 모두 마치면 쓰는 금색 머리띠
   const goldBand = new THREE.Mesh(new THREE.CylinderGeometry(.208, .208, .07, 16), lam(0xe0b53a));
   goldBand.position.y = 1.27;
   goldBand.visible = goldEarned();
@@ -1198,6 +1219,8 @@ function boot() {
   }
   const entryLabel = pinLabel('도장 들어가기', 14.6, 3.5, 17.2, '#b92a2c');
   const hotspots = [
+    { name: '오늘의 도전', noChip: true, action: '오늘의 도전 보기', stand: [10.54, 15.35], objs: [challengeStand],
+      label: pinLabel('오늘의 도전', 10.54, 2.05, 14.48, '#a85a08'), open: () => openStamps() },
     { name: '도장 들어가기', noChip: true, stand: [12.4, 17.2], objs: [doorPanelN, doorPanelS], label: entryLabel, open: () => {} },
     { name: '안내문', noChip: false, action: '안내문 보기', stand: [12.5, 19.55], objs: [noticeMesh],
       label: pinLabel('안내문', 12.4, 3.2, 18.8, '#161f38'), open: () => openBoard(0) },
@@ -1233,7 +1256,7 @@ function boot() {
     $('places').appendChild(b);
   }
   addPlace('게임', () => openGameMenu());
-  addPlace('도장깨기', () => openStamps());
+  addPlace('오늘의 도전', () => openStamps());
   hotspots.forEach(h => {
     h.objs.concat(h.label).forEach(o => { o.userData.hotspot = h; clickable.push(o); });
     if (!h.noChip) addPlace(h.name, () => goToHotspot(h));
@@ -1499,10 +1522,10 @@ function boot() {
     });
     renderBoardTab(start);
   }
-  // ---------- 도장깨기 ----------
+  // ---------- 오늘의 도전 ----------
   function openStamps() {
     const list = DOJANG.stamps, count = list.filter(stampDone).length;
-    openSheet('도장깨기');
+    openSheet('오늘의 도전');
     const body = $('sheetBody');
     const head = document.createElement('p');
     head.className = 'stamp-head';
@@ -1510,6 +1533,9 @@ function boot() {
       : goldEarned() ? `금색 머리띠를 받았어요. 새 게임 도장도 모아보세요. (${count}/${list.length})`
       : `${list.length}개 중 ${count}개를 찍었어요. 모두 찍으면 금색 머리띠를 받아요.`;
     body.appendChild(head);
+    const guide = document.createElement('p');
+    guide.textContent = '하고 싶은 게임을 누르세요! 목표 기록을 넘으면 도장을 찍고, 모두 모으면 금색 머리띠를 받아요. 기록과 도장은 다음에도 이어져요.';
+    body.appendChild(guide);
     const grid = document.createElement('div');
     grid.className = 'stamps';
     list.forEach(s => {
@@ -1529,7 +1555,7 @@ function boot() {
     body.appendChild(grid);
     const share = document.createElement('button');
     share.className = 'stamp-share js-share';
-    share.dataset.text = count ? `도장깨기 ${count}개를 찍었어요! 너도 해봐!` : '우리 도장 도장깨기, 같이 해보자!';
+    share.dataset.text = count ? `오늘의 도전 ${count}개를 찍었어요! 너도 해봐!` : '우리 도장 오늘의 도전, 같이 해보자!';
     share.textContent = count ? '친구에게 자랑하기' : '친구에게 알려주기';
     body.appendChild(share);
   }
