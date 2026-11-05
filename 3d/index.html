@@ -2372,7 +2372,7 @@ function boot() {
   const shuffled = list => list.map(v => [Math.random(), v]).sort((a, b) => a[0] - b[0]).map(p => p[1]);
   const object = (word, a, b) => word + ((word.charCodeAt(word.length - 1) - 44032) % 28 ? a : b);
   const TIDY_MAX = 8, FOLD_TIME = 40;
-  const TIDY_KINDS = [{ name: '가방' }, { name: '도복' }, { name: '띠' }, { name: '잠바' }, { name: '빨래통' }];
+  const TIDY_KINDS = [{ name: '가방' }, { name: '도복' }, { name: '띠' }, { name: '옷' }, { name: '빨래통' }];
 
   const MINI = {
     // 줄이 발밑에 올 때 공중에 있어야 한다
@@ -2633,7 +2633,7 @@ function boot() {
     // 바닥에 쌓이는 물건을 끌어서 제자리에 넣는다. 바닥이 가득 차면 끝난다
     tidy: {
       pointOnly: true, title: '탈의실 정리', unit: '개', labels: ['정리', '바닥'], foot: '물건을 끌어서 맞는 칸에 넣으세요',
-      help: `바닥에 떨어지는 가방, 도복, 띠, 잠바를 끌어서 맞는 칸에 넣으세요. 냄새나는 양말은 빨래통으로! 물건이 ${TIDY_MAX}개를 넘으면 끝나요.`,
+      help: `바닥에 떨어지는 가방, 도복, 띠, 옷을 끌어서 맞는 칸에 넣으세요. 냄새나는 양말은 빨래통으로! 물건이 ${TIDY_MAX}개를 넘으면 끝나요.`,
       init() {
         const s = { count: 0, wrong: 0, items: [], next: 1.2, drag: null, hover: -1, callT: 0, flash: -1, flashT: 0 };
         tidySpawn(s); tidySpawn(s);
@@ -2763,7 +2763,7 @@ function boot() {
     }
   };
   // ---------- 탈의실 정리 ----------
-  // 가방, 도복, 띠, 잠바는 선반 칸으로, 양말은 빨래통으로 간다
+  // 가방, 도복, 띠, 옷은 선반 칸으로, 양말은 빨래통으로 간다
   function tidyLayout(W, H) {
     const gap = 6, shelfH = Math.max(76, Math.min(170, H * .27)), cw = (W - gap * 5) / 4;
     const bw = Math.min(W * .27, 112, H * .24), size = Math.max(40, Math.min(64, Math.min(W, H) * .16));
