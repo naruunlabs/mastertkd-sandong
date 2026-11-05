@@ -986,7 +986,12 @@ function boot() {
   box(11.6, 19.72, 12, 20.1, .42, .04, 0xc9a26b, null, officeGroup);
   box(11.6, 19.7, 12, 19.74, .46, .42, 0xc9a26b, null, officeGroup);
   box(10.5, 21.2, 12.3, 21.6, .4, .06, 0xe9eaea, null, officeGroup);
-  solid(10.25, 19.65, 12.75, 21.65);
+  // 테이블 중심을 기준으로 의자, 벤치, 노트북까지 함께 오른쪽으로 90도 회전.
+  const officePivot = new THREE.Vector3(11.5, 0, 20.625);
+  officeGroup.children.forEach(part => part.position.sub(officePivot));
+  officeGroup.position.copy(officePivot);
+  officeGroup.rotation.y = -Math.PI / 2;
+  solid(10.45, 19.35, 12.55, 21.9);
   // 상장과 트로피 선반
   box(13.4, 18.85, 13.88, 20.9, 0, 1.35, 0xf4f4f0);
   [[19.1, 0xe0b53a], [19.5, 0xe0b53a], [19.9, 0xc9ccd4], [20.3, 0xf3efe2], [20.6, 0xc98b4c]].forEach(([z, c], i) => box(13.5, z - .06, 13.66, z + .06, 1.35, i === 3 ? .34 : .4, c));
