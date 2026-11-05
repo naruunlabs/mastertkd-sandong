@@ -980,7 +980,8 @@ function boot() {
   });
   [[10.8, 20.4], [12.2, 20.4], [11.5, 20.9]].forEach(([x, z]) => box(x - .03, z - .03, x + .03, z + .03, 0, .72, 0x1f2024, null, officeGroup));
   box(11.2, 20.5, 11.65, 20.8, .77, .02, 0x9aa4b4, null, officeGroup);
-  box(11.2, 20.48, 11.65, 20.5, .79, .28, 0x9aa4b4, null, officeGroup);
+  // 노트북만 중심 기준 180도 반전하여 화면을 안쪽 자리로 향하게 한다.
+  box(11.2, 20.8, 11.65, 20.82, .79, .28, 0x9aa4b4, null, officeGroup);
   box(10.5, 19.65, 10.9, 20.05, .42, .04, 0x1f2024, null, officeGroup);
   box(10.5, 19.63, 10.9, 19.67, .46, .42, 0x1f2024, null, officeGroup);
   box(11.6, 19.72, 12, 20.1, .42, .04, 0xc9a26b, null, officeGroup);
