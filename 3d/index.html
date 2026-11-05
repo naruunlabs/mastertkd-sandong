@@ -1100,10 +1100,22 @@ function boot() {
     torso.position.y = .76; torso.castShadow = true; root.add(torso);
     const belt = new THREE.Mesh(new THREE.BoxGeometry(.46, .07, .28), beltMat);
     belt.position.y = .6; root.add(belt);
-    const knot = new THREE.Mesh(new THREE.BoxGeometry(.08, .18, .04), beltMat);
-    knot.position.set(0, .53, .15); root.add(knot);
-    const collar = new THREE.Mesh(new THREE.BoxGeometry(.1, .2, .02), lam(0x2a3048));
-    collar.position.set(0, .92, .135); collar.rotation.z = .6; root.add(collar);
+    // 두 끝이 매듭에서 양옆으로 내려오는 띠.
+    const strip = (x1, y1, x2, y2, width, depth, z, mat) => {
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(width, Math.hypot(x2 - x1, y2 - y1), depth), mat);
+      mesh.position.set((x1 + x2) / 2, (y1 + y2) / 2, z);
+      mesh.rotation.z = -Math.atan2(x2 - x1, y2 - y1);
+      root.add(mesh);
+    };
+    [-1, 1].forEach(side => strip(side * .015, .59, side * .115, .40, .065, .035, .165, beltMat));
+    const knot = new THREE.Mesh(new THREE.BoxGeometry(.095, .075, .055), beltMat);
+    knot.position.set(0, .6, .18); root.add(knot);
+    // 품 도복 깃: V자의 위 테두리는 검정, 아래 테두리는 빨강.
+    const collarBlack = lam(0x191b22), collarRed = lam(0xc82e38);
+    [-1, 1].forEach(side => {
+      strip(side * .13, 1.015, 0, .835, .065, .018, .145, collarRed);
+      strip(side * .13, 1.04, 0, .86, .033, .018, .16, collarBlack);
+    });
     const head = new THREE.Mesh(new THREE.SphereGeometry(.19, 14, 12), skin);
     head.position.y = 1.2; head.castShadow = true; root.add(head);
     const cap = new THREE.Mesh(new THREE.SphereGeometry(.2, 14, 8, 0, Math.PI * 2, 0, Math.PI * .55), hair);
@@ -2315,6 +2327,19 @@ function boot() {
     if (!e.repeat) mini.def.tap(mini.s, mW / 2, mH / 2);
   }
   const beltStyle = () => '#' + me.beltMat.color.getHexString();
+  // 캐릭터와 정리 게임에서 같은 매듭 모양을 쓴다.
+  function drawUniformBelt(g, x, y, width, band, color, outline = false) {
+    g.save(); g.lineJoin = 'round'; g.lineCap = 'butt';
+    const shape = () => {
+      g.moveTo(x - width / 2, y); g.lineTo(x + width / 2, y);
+      g.moveTo(x, y); g.lineTo(x - width * .23, y + width * .43);
+      g.moveTo(x, y); g.lineTo(x + width * .23, y + width * .43);
+    };
+    if (outline) { g.strokeStyle = '#1a1a1f'; g.lineWidth = band + width * .055; g.beginPath(); shape(); g.stroke(); }
+    g.strokeStyle = color; g.lineWidth = band; g.beginPath(); shape(); g.stroke();
+    g.fillStyle = color; g.fillRect(x - band * .65, y - band * .65, band * 1.3, band * 1.3);
+    g.restore();
+  }
   function drawKid(g, x, feet, h, o) {
     o = o || {};
     const unit = h / 10, swing = o.swing || 0;
@@ -2332,7 +2357,14 @@ function boot() {
       part(x - unit * 1.9, hip - unit * 3, unit * .9, unit * 3, -swing + .15);
       part(x + unit * 1.9, hip - unit * 3, unit * .9, unit * 3, swing - .15);
     }
-    g.fillStyle = beltStyle(); g.fillRect(x - unit * 1.65, hip - unit * .4, unit * 3.3, unit * .55);
+    g.lineJoin = 'round';
+    const vCollar = (dy, color, width) => {
+      g.strokeStyle = color; g.lineWidth = unit * width;
+      g.beginPath(); g.moveTo(x - unit * .95, hip - unit * 3.2 + dy);
+      g.lineTo(x, hip - unit * 1.85 + dy); g.lineTo(x + unit * .95, hip - unit * 3.2 + dy); g.stroke();
+    };
+    vCollar(unit * .2, '#c82e38', .5); vCollar(0, '#191b22', .25);
+    drawUniformBelt(g, x, hip - unit * .15, unit * 3.3, unit * .55, beltStyle());
     g.fillStyle = '#f0c8a4'; g.beginPath(); g.arc(x, hip - unit * 4.3, unit * 1.3, 0, 7); g.fill();
     g.fillStyle = '#241f1e'; g.beginPath(); g.arc(x, hip - unit * 4.5, unit * 1.35, Math.PI, 0); g.fill();
     return { shoulder: hip - unit * 2.8, hip };
@@ -2340,7 +2372,7 @@ function boot() {
   const shuffled = list => list.map(v => [Math.random(), v]).sort((a, b) => a[0] - b[0]).map(p => p[1]);
   const object = (word, a, b) => word + ((word.charCodeAt(word.length - 1) - 44032) % 28 ? a : b);
   const TIDY_MAX = 8, FOLD_TIME = 40;
-  const TIDY_KINDS = [{ name: '가방' }, { name: '도복' }, { name: '띠' }, { name: '보호대' }, { name: '빨래통' }];
+  const TIDY_KINDS = [{ name: '가방' }, { name: '도복' }, { name: '띠' }, { name: '잠바' }, { name: '빨래통' }];
 
   const MINI = {
     // 줄이 발밑에 올 때 공중에 있어야 한다
@@ -2601,7 +2633,7 @@ function boot() {
     // 바닥에 쌓이는 물건을 끌어서 제자리에 넣는다. 바닥이 가득 차면 끝난다
     tidy: {
       pointOnly: true, title: '탈의실 정리', unit: '개', labels: ['정리', '바닥'], foot: '물건을 끌어서 맞는 칸에 넣으세요',
-      help: `바닥에 떨어지는 가방, 도복, 띠, 보호대를 끌어서 맞는 칸에 넣으세요. 냄새나는 양말은 빨래통으로! 물건이 ${TIDY_MAX}개를 넘으면 끝나요.`,
+      help: `바닥에 떨어지는 가방, 도복, 띠, 잠바를 끌어서 맞는 칸에 넣으세요. 냄새나는 양말은 빨래통으로! 물건이 ${TIDY_MAX}개를 넘으면 끝나요.`,
       init() {
         const s = { count: 0, wrong: 0, items: [], next: 1.2, drag: null, hover: -1, callT: 0, flash: -1, flashT: 0 };
         tidySpawn(s); tidySpawn(s);
@@ -2731,7 +2763,7 @@ function boot() {
     }
   };
   // ---------- 탈의실 정리 ----------
-  // 가방, 도복, 띠, 보호대는 선반 칸으로, 양말은 빨래통으로 간다
+  // 가방, 도복, 띠, 잠바는 선반 칸으로, 양말은 빨래통으로 간다
   function tidyLayout(W, H) {
     const gap = 6, shelfH = Math.max(76, Math.min(170, H * .27)), cw = (W - gap * 5) / 4;
     const bw = Math.min(W * .27, 112, H * .24), size = Math.max(40, Math.min(64, Math.min(W, H) * .16));
@@ -2788,17 +2820,28 @@ function boot() {
       g.moveTo(-u * 2, -u * 3.8); g.lineTo(u * 2, -u * 3.8); g.lineTo(u * 4.6, -u * 1.2); g.lineTo(u * 3, u * .2);
       g.lineTo(u * 2.4, -u * .6); g.lineTo(u * 2.4, u * 3.8); g.lineTo(-u * 2.4, u * 3.8); g.lineTo(-u * 2.4, -u * .6);
       g.lineTo(-u * 3, u * .2); g.lineTo(-u * 4.6, -u * 1.2); g.closePath(); g.fill(); g.stroke();
-      g.lineWidth = u * .7;
+      g.lineWidth = u * .8; g.strokeStyle = '#c82e38';
+      g.beginPath(); g.moveTo(-u * 1.3, -u * 3.45); g.lineTo(0, -u * 1.15); g.lineTo(u * 1.3, -u * 3.45); g.stroke();
+      g.lineWidth = u * .4; g.strokeStyle = '#191b22';
       g.beginPath(); g.moveTo(-u * 1.3, -u * 3.7); g.lineTo(0, -u * 1.4); g.lineTo(u * 1.3, -u * 3.7); g.stroke();
-    } else if (kind === 2) { // 돌돌 만 띠
-      g.lineWidth = u * 2.5; g.strokeStyle = '#1a1a1f';
-      g.beginPath(); g.arc(0, -u * .4, u * 2.4, 0, 7); g.moveTo(u * 2, u * 1.4); g.lineTo(u * 4, u * 3.4); g.stroke();
-      g.lineWidth = u * 1.9; g.strokeStyle = color;
-      g.beginPath(); g.arc(0, -u * .4, u * 2.4, 0, 7); g.moveTo(u * 2, u * 1.4); g.lineTo(u * 4, u * 3.4); g.stroke();
-    } else if (kind === 3) { // 정강이 보호대
-      g.fillStyle = '#d6322a'; g.beginPath(); g.roundRect(-u * 2.6, -u * 4.2, u * 5.2, u * 8.4, u * 1.8); g.fill(); g.stroke();
-      g.fillStyle = '#fbfbf8';
-      [-2, 0, 2].forEach(k => g.fillRect(-u * 2.6, (k - .35) * u, u * 5.2, u * .7));
+    } else if (kind === 2) { // 허리띠와 ㅅ 모양의 두 끝
+      drawUniformBelt(g, 0, -u * 1.2, u * 8.2, u * 1.15, color, true);
+    } else if (kind === 3) { // 파란 잠바: 긴 소매, 지퍼, 주머니
+      g.fillStyle = '#4276a8';
+      g.beginPath();
+      g.moveTo(-u * 1.4, -u * 3.9); g.lineTo(u * 1.4, -u * 3.9);
+      g.lineTo(u * 3, -u * 3); g.lineTo(u * 4.5, u * 1.4); g.lineTo(u * 3, u * 2);
+      g.lineTo(u * 2.3, 0); g.lineTo(u * 2.5, u * 3.9); g.lineTo(-u * 2.5, u * 3.9);
+      g.lineTo(-u * 2.3, 0); g.lineTo(-u * 3, u * 2); g.lineTo(-u * 4.5, u * 1.4);
+      g.lineTo(-u * 3, -u * 3); g.closePath(); g.fill(); g.stroke();
+      g.fillStyle = '#243b59';
+      g.beginPath(); g.moveTo(-u * 1.4, -u * 3.9); g.lineTo(0, -u * 2.6); g.lineTo(u * 1.4, -u * 3.9); g.closePath(); g.fill();
+      g.strokeStyle = '#d9e4ee'; g.lineWidth = u * .25;
+      g.beginPath(); g.moveTo(0, -u * 2.6); g.lineTo(0, u * 3.7); g.stroke();
+      g.strokeStyle = '#243b59';
+      [-1, 1].forEach(side => {
+        g.beginPath(); g.moveTo(side * u * .9, u * 1.2); g.lineTo(side * u * 1.8, u * 2.2); g.stroke();
+      });
     } else { // 냄새나는 양말과 빨래통 표시
       g.fillStyle = '#b5b8ae';
       g.beginPath();
