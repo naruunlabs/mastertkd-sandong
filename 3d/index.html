@@ -920,7 +920,31 @@ function boot() {
   const doorOpen = { amount: 0, n: doorPanelN.position.z, s: doorPanelS.position.z };
   // 간판과 포스터
   decal(photoTex('out_sign'), 2.63, .55, 14.115, 2.425, 16.94, 'e', wEastHall);
-  decal(photoTex('out_belts'), .86, 2.1, 14.8, 1.2, 14.115, 's', wSouth1);
+  // 사진 속 안내판의 네 모서리를 벽의 직사각형에 맞춘다.
+  // 원본 이미지의 글씨를 유지하며, 잘못 포함된 위쪽 검정 프레임을 제외한다.
+  function alignedBeltPoster() {
+    const poster = decal(photoTex('out_belts'), .86, 2.1, 14.8, 1.2, 14.115, 's', wSouth1);
+    poster.geometry.dispose();
+    const geo = new THREE.PlaneGeometry(.86, 2.1, 24, 48);
+    const uv = geo.attributes.uv;
+    // 원본 텍스처(450 x 1100)의 왼위, 오른위, 오른아래, 왼아래.
+    const p = [[22, 88], [433, 20], [428, 1096], [25, 1078]];
+    const [a, b, c, d] = p;
+    const dx1 = b[0] - c[0], dx2 = d[0] - c[0], dx3 = a[0] - b[0] + c[0] - d[0];
+    const dy1 = b[1] - c[1], dy2 = d[1] - c[1], dy3 = a[1] - b[1] + c[1] - d[1];
+    const det = dx1 * dy2 - dx2 * dy1;
+    const g = (dx3 * dy2 - dx2 * dy3) / det;
+    const h = (dx1 * dy3 - dx3 * dy1) / det;
+    for (let i = 0; i < uv.count; i++) {
+      const x = uv.getX(i), y = 1 - uv.getY(i), q = 1 + g * x + h * y;
+      const sx = ((b[0] - a[0] + g * b[0]) * x + (d[0] - a[0] + h * d[0]) * y + a[0]) / q;
+      const sy = ((b[1] - a[1] + g * b[1]) * x + (d[1] - a[1] + h * d[1]) * y + a[1]) / q;
+      uv.setXY(i, sx / 450, 1 - sy / 1100);
+    }
+    uv.needsUpdate = true;
+    poster.geometry = geo;
+  }
+  alignedBeltPoster();
   decal(photoTex('out_programs'), .96, 2.1, 15.75, 1.2, 14.115, 's', wSouth1);
   const outBandDraw = (g, w, h) => {
     g.fillStyle = '#f4f5f6'; g.fillRect(0, 0, w, h);
