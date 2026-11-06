@@ -425,6 +425,8 @@ textarea { min-height: 80px; }
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
         <span>블로그 글(사용 안 함)</span>
       </div>
+      <div class="nav-group-label">통계</div>
+      <button type="button" class="nav-item" id="visit-stats-nav" style="width:100%;background:none;border:0;text-align:left;font:inherit"><span>방문 통계</span></button>
       <div class="nav-group-label">설정</div>
       <div class="nav-item" onclick="showPage('sections',this)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
@@ -453,6 +455,21 @@ textarea { min-height: 80px; }
     </div>
 
     <!-- ① 기본 정보 -->
+    <div id="page-visits" class="page" style="display:none">
+      <h2>방문 통계</h2>
+      <button type="button" class="btn" id="visit-stats-refresh">새로고침</button>
+      <p id="visit-stats-status" role="status"></p>
+      <div style="overflow:auto">
+        <table id="visit-summary" hidden style="width:100%;text-align:left;margin:12px 0 24px">
+          <thead><tr><th scope="col">화면</th><th scope="col">오늘</th><th scope="col">최근 7일</th><th scope="col">누적</th></tr></thead>
+          <tbody id="visit-summary-rows"></tbody>
+        </table>
+        <table id="visit-history" hidden style="width:100%;text-align:left">
+          <thead><tr><th scope="col">날짜</th><th scope="col">홈페이지</th><th scope="col">3D 둘러보기</th></tr></thead>
+          <tbody id="visit-history-rows"></tbody>
+        </table>
+      </div>
+    </div>
     <div id="page-basic" class="page">
       <div class="page-header">
         <h1>기본 정보</h1>
@@ -2111,12 +2128,75 @@ Object.assign(window, {
 
 // 인증 상태가 바뀔 때마다 화면을 전환합니다.
 // 로그인하지 않으면 관리 화면 자체가 열리지 않고, Firestore 규칙도 쓰기를 거부합니다.
+
+const statsNav = document.getElementById('visit-stats-nav');
+const statsRefresh = document.getElementById('visit-stats-refresh');
+const statsStatus = document.getElementById('visit-stats-status');
+const statsSummary = document.getElementById('visit-summary');
+const statsHistory = document.getElementById('visit-history');
+const labels = new Map([['mastertkd-home','홈페이지'],['mastertkd-sandong','3D 둘러보기']]);
+const dayFormat = new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit'});
+let statsGeneration = 0;
+function clearVisitStats(){
+  statsGeneration++;
+  statsSummary.hidden = statsHistory.hidden = true;
+  statsSummary.tBodies[0].replaceChildren();
+  statsHistory.tBodies[0].replaceChildren();
+  statsStatus.textContent = '';
+}
+function addStatsRow(body, values){
+  const row = body.insertRow();
+  for(const value of values) row.insertCell().textContent = typeof value==='number'?value.toLocaleString('ko-KR'):value;
+}
+async function loadVisitStats(){
+  clearVisitStats();
+  const generation = statsGeneration;
+  const user = _auth.currentUser;
+  if(!user)return;
+  statsStatus.textContent='불러오는 중';
+  try{
+    const token=await user.getIdToken();
+    const response=await fetch('https://ebgoolsymyzkftvavpyj.supabase.co/functions/v1/dojang-visit-stats',{
+      headers:{Authorization:'Bearer '+token},
+    });
+    if(generation!==statsGeneration||_auth.currentUser!==user)return;
+    if(response.status===403){statsStatus.textContent='이메일 인증을 마친 관리자 계정으로 로그인해 주세요.';return;}
+    if(!response.ok)throw new Error('Statistics unavailable');
+    const rows=await response.json();
+    if(generation!==statsGeneration||_auth.currentUser!==user)return;
+    const now=Date.now(), today=dayFormat.format(now), weekStart=dayFormat.format(now-6*86400000);
+    const counts=new Map(), firstDays=new Map();
+    for(const [site,label] of labels){
+      const entries=rows.filter(row=>row.site===site);
+      const total=entries.reduce((sum,row)=>sum+row.visits,0);
+      const week=entries.filter(row=>row.day>=weekStart).reduce((sum,row)=>sum+row.visits,0);
+      const first=entries.at(-1)?.day;
+      firstDays.set(site,first);
+      addStatsRow(statsSummary.tBodies[0],[label,first?(entries.find(row=>row.day===today)?.visits??0):'—',first?week:'—',first?total:'—']);
+      for(const row of entries){
+        if(!counts.has(row.day))counts.set(row.day,new Map());
+        counts.get(row.day).set(site,row.visits);
+      }
+    }
+    for(const day of [...counts.keys()].sort().reverse()){
+      addStatsRow(statsHistory.tBodies[0],[day,...[...labels.keys()].map(site=>firstDays.get(site)&&day>=firstDays.get(site)?counts.get(day).get(site)??0:'—')]);
+    }
+    statsSummary.hidden=statsHistory.hidden=false;
+    statsStatus.textContent=rows.length?'일별 방문 합계 · 한국 시간':'아직 방문 기록이 없어요.';
+  }catch{
+    if(generation===statsGeneration)statsStatus.textContent='방문 통계를 불러오지 못했어요. 다시 시도해 주세요.';
+  }
+}
+statsNav.addEventListener('click',()=>{showPage('visits',statsNav);loadVisitStats();});
+statsRefresh.addEventListener('click',loadVisitStats);
+
 let _booted = false;
 onAuthStateChanged(_auth, async (user) => {
   const loginScreen = document.getElementById('loginScreen');
   const adminApp = document.getElementById('adminApp');
 
   if (!user) {
+    clearVisitStats();
     loginScreen.style.display = 'flex';
     adminApp.style.display = 'none';
     _booted = false;

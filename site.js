@@ -114,6 +114,36 @@ ${visible('location')?`<section class="section" id="location"><div class="wrap l
   }
   global.MasterSite={renderSite,structuredData,createSnapshot,normalize,faqs,json,scheduleText,timeRange,DEFAULT_SCHEDULE,DEFAULT_SCHEDULE_NOTE,TIME_QUESTION};
   if(typeof document==='undefined'||!document.getElementById('site-root'))return;
+  let homeVisits;
+  function showHomeVisits(){
+    if(homeVisits===undefined)return;
+    const footer=document.querySelector('.site-footer .footer-copy');
+    if(!footer)return;
+    let count=document.getElementById('home-visit-count');
+    if(!count){
+      count=document.createElement('p');
+      count.id='home-visit-count';
+      count.className='footer-copy';
+      footer.before(count);
+    }
+    count.textContent='오늘 홈페이지 방문자 '+homeVisits.toLocaleString('ko-KR')+'명';
+  }
+  (async()=>{
+    if(location.hostname!=='mastertkd-sandong.kr'||!crypto.randomUUID)return;
+    try{
+      const key='dojang-visitor';
+      let visitor=localStorage.getItem(key);
+      if(!visitor){visitor=crypto.randomUUID();localStorage.setItem(key,visitor);}
+      const res=await fetch("https://ebgoolsymyzkftvavpyj.supabase.co/rest/v1/rpc/dojang_visit",{
+        method:'POST',
+        headers:{apikey:"sb_publishable_378Ep28vw4J9Sia2OsN6-Q_gqnu5OQJ",'Content-Type':'application/json'},
+        body:JSON.stringify({p_site:'mastertkd-home',p_visitor:visitor}),
+      });
+      if(!res.ok)return;
+      const count=await res.json();
+      if(Number.isInteger(count)&&count>=0){homeVisits=count;showHomeVisits();}
+    }catch{}
+  })();
   let boardTaps=0, lastBoardTap=0;
   document.addEventListener('click',event=>{
     const gap=event.target;
@@ -156,6 +186,7 @@ ${visible('location')?`<section class="section" id="location"><div class="wrap l
         const menuOpen=!!document.querySelector('.mobile-nav[open]');
         const y=global.scrollY;
         root.innerHTML=next;
+        showHomeVisits();
         document.querySelectorAll('.faq-item').forEach(el=>{if(openQuestions.includes(el.querySelector('summary').textContent))el.open=true;});
         if(menuOpen)document.querySelector('.mobile-nav').open=true;
         if(focusedHref)[...document.querySelectorAll('a')].find(a=>a.getAttribute('href')===focusedHref)?.focus({preventScroll:true});
