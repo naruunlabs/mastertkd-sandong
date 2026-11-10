@@ -363,10 +363,9 @@ const DOJANG = {
     hall: [[1, '현관에서 안쪽으로'], [2, '복도와 입구'], [0, '입구 밖']],
     gwan1: [[3, '창문 쪽'], [4, '교구 선반 쪽'], [5, '창가 벤치와 줄넘기'], [6, '에어매트와 선반']],
     gwan2: [[7, '로고 벽 쪽'], [8, '출입문 쪽']],
-    office: [[9, '복도에서 본 사무실']],
     rest: [[10, '창가와 로고 벽']],
     yeo: [[11, '탈의실']],
-    nam: [[11, '탈의실']]
+    nam: [[12, '출입문 쪽']]
   }
 };
 
@@ -1841,6 +1840,7 @@ function boot() {
 
   function openPhotos(room) {
     const list = DOJANG.photos[room];
+    if (!list) return;
     let i = 0;
     openSheet(`${ROOM_NAMES[room]} 실제 사진`);
     const body = $('sheetBody');
@@ -3351,7 +3351,11 @@ function boot() {
     entryLabel.visible = player.x >= 14;
 
     const room = roomAt(player.x, player.z);
-    if (room !== whereName) { whereName = room; $('where').textContent = ROOM_NAMES[room]; }
+    if (room !== whereName) {
+      whereName = room;
+      $('where').textContent = ROOM_NAMES[room];
+      $('photoBtn').hidden = !DOJANG.photos[room];
+    }
     const near = hotspots.find(h => h.action && Math.hypot(h.stand[0] - player.x, h.stand[1] - player.z) < 1.2) || null;
     if (near !== nearSpot) {
       nearSpot = near;
