@@ -10,25 +10,17 @@
   h1 { margin: 0 0 4px; font-size: 22px; }
   p { margin: 6px 0; }
   .soft { color: #5a616d; font-size: 14px; }
-  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 12px 0; }
-  input { width: 110px; padding: 10px; font-size: 16px; border: 1px solid #9aa3b5; }
   button { padding: 10px 14px; font-size: 15px; font-weight: 700; border: 0; background: #161f38; color: #fff; }
   button.del { width: 100%; background: #b92a2c; }
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
   .card { background: #fff; border: 1px solid #d5d8de; padding: 8px; }
   canvas { width: 100%; aspect-ratio: 1; display: block; border: 1px solid #d5d8de; }
   .when { font-size: 13px; margin: 6px 0; }
-  .wait { color: #b92a2c; font-weight: 700; }
 </style>
 </head>
 <body>
 <h1>낙서장 관리</h1>
-<p class="soft">그린 뒤 24시간이 지나면 자동으로 벽에 걸려요. 이상한 그림만 지우면 됩니다. 이 주소는 남에게 보내지 마세요.</p>
-<div class="row">
-  <label for="code">도장 코드</label>
-  <input id="code" inputmode="numeric" maxlength="8" autocomplete="off">
-  <button id="saveCode">코드 바꾸기</button>
-</div>
+<p class="soft">낙서는 저장하면 바로 벽에 걸려요. 이상한 그림만 지우면 됩니다. 이 주소는 남에게 보내지 마세요.</p>
 <p id="status" class="soft" aria-live="polite">불러오는 중이에요</p>
 <div class="grid" id="grid"></div>
 <script>
@@ -70,8 +62,7 @@ function draw(canvas, b64) {
   if (open) g.stroke();
 }
 function show(r) {
-  if (r.error) { $('status').textContent = r.error === 'key' ? '관리 주소가 맞지 않아요.' : '코드는 숫자 4~8자리로 넣어주세요.'; return; }
-  $('code').value = r.code;
+  if (r.error) { $('status').textContent = r.error === 'key' ? '관리 주소가 맞지 않아요.' : '낙서를 불러오지 못했어요.'; return; }
   $('status').textContent = r.items.length ? `낙서 ${r.items.length}장` : '아직 낙서가 없어요.';
   const grid = $('grid');
   grid.textContent = '';
@@ -79,10 +70,9 @@ function show(r) {
     const card = document.createElement('div'); card.className = 'card';
     const c = document.createElement('canvas'); c.width = c.height = 300;
     draw(c, item.data);
-    const at = new Date(item.created_at), left = at.getTime() + 864e5 - Date.now();
+    const at = new Date(item.created_at);
     const when = document.createElement('p'); when.className = 'when';
-    if (left > 0) { when.classList.add('wait'); when.textContent = `${Math.ceil(left / 36e5)}시간 뒤 공개`; }
-    else when.textContent = '공개됨 · ' + at.toLocaleDateString('ko-KR');
+    when.textContent = '공개됨 · ' + at.toLocaleDateString('ko-KR');
     const del = document.createElement('button'); del.className = 'del'; del.textContent = '삭제';
     del.addEventListener('click', async () => {
       if (!confirm('이 낙서를 지울까요? 되돌릴 수 없어요.')) return;
@@ -92,13 +82,6 @@ function show(r) {
     grid.appendChild(card);
   });
 }
-$('saveCode').addEventListener('click', async () => {
-  try {
-    const r = await call({ p_new_code: $('code').value.trim() });
-    show(r);
-    if (!r.error) $('status').textContent = '코드를 바꿨어요. ' + $('status').textContent;
-  } catch (e) { $('status').textContent = '바꾸지 못했어요. 다시 해주세요.'; }
-});
 call({}).then(show).catch(() => { $('status').textContent = '불러오지 못했어요.'; });
 </script>
 </body>
