@@ -209,6 +209,9 @@ th { font-size: 13px; color: var(--ink-soft); }
 .menu-row button { border: 0; background: var(--ink); color: var(--dobok); padding: 11px 16px; font-size: 15px; font-weight: 700; }
 .fail { position: fixed; inset: 0; z-index: 9; display: flex; align-items: center; justify-content: center; text-align: center; padding-block: 24px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); background: var(--ink); line-height: 1.7; }
 @media (prefers-reduced-motion: reduce) { .mit.hit { animation: none; } .hint { transition: none; } }
+.duel-canvas { display:block; flex:1; width:100%; min-height:0; }
+#game .mits { flex:none; height:84px; gap:20px; }
+#game .mit { width:76px; font-size:22px; }
 </style>
 
 <canvas id="scene" aria-label="평면도대로 만든 태권도장 3D 공간. 바닥을 누르면 캐릭터가 걸어갑니다."></canvas>
@@ -242,19 +245,19 @@ th { font-size: 13px; color: var(--ink-soft); }
   </section>
 </div>
 
-<div class="game" id="game" role="dialog" aria-label="미트 격파 게임" hidden>
+<div class="game" id="game" role="dialog" aria-label="겨루기 게임" hidden>
   <div class="game-top">
     <div class="game-stats">
-      <div><b id="gScore">0</b><span>점수</span></div>
-      <div><b id="gCombo">0</b><span>연속</span></div>
-      <div><b id="gLeft">12</b><span>남은 미트</span></div>
+      <div><b id="gScore">0</b><span id="gLabelScore">내 점수</span></div>
+      <div><b id="gCombo">0</b><span id="gLabelCombo">상대 점수</span></div>
+      <div><b id="gLeft">20</b><span id="gLabelLeft">남은 시간</span></div>
     </div>
     <button class="close" id="gClose">그만하기</button>
   </div>
   <div class="game-call" id="gCall" aria-live="polite"></div>
   <div class="mits">
-    <button class="mit cheong" id="mitL" aria-label="청 미트 차기">청<span class="ring"></span></button>
-    <button class="mit hong" id="mitR" aria-label="홍 미트 차기">홍<span class="ring"></span></button>
+    <button class="mit cheong" id="mitL" aria-label="공격">공격<span class="ring"></span></button>
+    <button class="mit hong" id="mitR" aria-label="방어">방어<span class="ring"></span></button>
   </div>
   <div class="game-foot" id="gFoot"></div>
   <div class="game-card" id="gCard"></div>
@@ -334,13 +337,13 @@ const DOJANG = {
     colors: ['#1a1a1f', '#d6322a', '#1d4fc2', '#f0c419', '#2c8a43', '#6a3fa8'], colorNames: ['검정', '빨강', '파랑', '노랑', '초록', '보라']
   },
   stamps: [
-    { id: 'mit', name: '미트 격파', need: 600, unit: '점' },
+    { id: 'mit', name: '겨루기', need: 8, unit: '점' },
     { id: 'soccer', name: '축구', need: 300, unit: '점' },
     { id: 'basket', name: '농구', need: 300, unit: '점' },
-    { id: 'rope', name: '줄넘기', need: 10, unit: '개' },
+    { id: 'rope', name: '줄넘기', need: 16, unit: '개' },
     { id: 'pumsae', name: '품새 퀴즈', need: 60, unit: '점' },
-    { id: 'run', name: '매트 달리기', need: 100, unit: 'm' },
-    { id: 'pads', name: '쿠션 벽 터치', need: 150, unit: '점' },
+    { id: 'run', name: '매트 달리기', need: 160, unit: 'm' },
+    { id: 'pads', name: '쿠션 벽 터치', need: 180, unit: '점' },
     { id: 'cups', name: '컵 쌓기', need: 1200, unit: '점' },
     { id: 'tidy', name: '탈의실 정리', need: 30, unit: '개' },
     { id: 'fold', name: '도복 개기', need: 6, unit: '벌' }
@@ -391,7 +394,7 @@ function challengeSet(key, value) {
   catch (e) { challengeMemory.set(key, String(value)); }
 }
 function dailyBest(id, day = challengeDay()) {
-  return Math.max(0, Number(challengeGet(CHALLENGE_PREFIX + day + '-' + id)) || 0);
+  return Math.max(0, Number(challengeGet(CHALLENGE_PREFIX + day + '-' + (id === 'mit' ? 'sparring-v1' : id))) || 0);
 }
 function stampBest(s) { return dailyBest(s.id); }
 function stampDone(s) { return stampBest(s) >= s.need; }
@@ -406,7 +409,7 @@ function goldEarned() { return medalCount() > 0; }
 function recordDailyScore(id, score) {
   const day = challengeDay(), previous = dailyBest(id, day);
   if (!Number.isFinite(score) || score < 0 || !stampOf(id)) return { previous, awarded: false };
-  challengeSet(CHALLENGE_PREFIX + day + '-' + id, Math.max(previous, score));
+  challengeSet(CHALLENGE_PREFIX + day + '-' + (id === 'mit' ? 'sparring-v1' : id), Math.max(previous, score));
   const medalKey = MEDAL_PREFIX + day;
   const awarded = DOJANG.stamps.every(s => dailyBest(s.id, day) >= s.need) && challengeGet(medalKey) !== '1';
   // 날짜별 획득 표시라 재접속하거나 여러 탭에서 달성해도 하루 한 개다.
@@ -415,6 +418,7 @@ function recordDailyScore(id, score) {
 }
 function stampGoal(id) {
   const s = stampOf(id);
+  if (!s) return '<p>보너스 게임 · 도장 획득 조건에는 포함되지 않아요.</p>';
   return `<p>${stampDone(s) ? '도장을 찍은 게임이에요' : `${s.need}${s.unit} 이상이면 도장을 찍어요`}</p>`;
 }
 
@@ -874,7 +878,7 @@ function boot() {
     goalGroup.add(b);
   });
   solid(7.5, 1.9, 9.9, 2.2);
-  // 마스터 더미 (미트 격파 자리)
+  // 마스터 더미 (겨루기 자리)
   const dummy = new THREE.Group();
   scene.add(dummy);
   cyl(.42, .28, 9.75, 0, 12.75, 0x1a1b20, dummy);
@@ -1091,6 +1095,12 @@ function boot() {
     cupGroup.add(cup);
   });
   solid(6.15, 21.1, 7, 21.5);
+  const cubeGroup = new THREE.Group(); scene.add(cubeGroup);
+  const cubeMaterials = [0xe43c32,0xf68b25,0xffffff,0xf5d328,0x27a34b,0x245de0].map(c=>lam(c));
+  [-1,1].forEach(x=>[-1,1].forEach(y=>[-1,1].forEach(z=>{
+    const m=new THREE.Mesh(new THREE.BoxGeometry(.16,.16,.16),cubeMaterials);
+    m.position.set(7.5+x*.09,.45+y*.09,21.25+z*.09); cubeGroup.add(m);
+  })));
   // 낙서장: 12칸을 한 장의 그림으로 만들어 오래된 폰에서도 가볍게 한다
   const doodleGroup = new THREE.Group();
   scene.add(doodleGroup);
@@ -1269,8 +1279,8 @@ function boot() {
       label: pinLabel('안내문', 12.4, 3.2, 18.8, '#161f38'), open: () => openBoard(0) },
     { name: '상담', noChip: false, action: '상담하기', stand: [10.6, 19.2], objs: [officeGroup],
       label: pinLabel('상담', 11.5, 2.5, 20.6, '#b92a2c'), open: () => openBoard(DOJANG.board.findIndex(t => t.consult)) },
-    { name: '미트 격파', noChip: true, action: '미트 격파 시작', stand: [9.75, 11.7], objs: [dummy],
-      label: pinLabel('미트 격파', 9.75, 3.4, 12.75, '#b92a2c'), open: openGameIntro },
+    { name: '겨루기', noChip: true, action: '겨루기 시작', stand: [9.75, 11.7], objs: [dummy],
+      label: pinLabel('겨루기', 9.75, 3.4, 12.75, '#b92a2c'), open: openGameIntro },
     { name: '축구', noChip: true, action: '축구 시작', stand: [8.7, 3.3], objs: [goalGroup],
       label: pinLabel('축구', 8.7, 2.7, 2.1, '#2c8a43'), open: () => openShot('soccer') },
     { name: '농구', noChip: true, action: '농구 시작', stand: [19.9, 11.9], objs: [hoopGroup],
@@ -1285,6 +1295,8 @@ function boot() {
       label: pinLabel('쿠션 터치', .5, 2.7, 8, '#d9761f'), open: () => openMini('pads') },
     { name: '컵 쌓기', noChip: true, action: '컵 쌓기 시작', stand: [6.2, 20.3], objs: [cupGroup],
       label: pinLabel('컵 쌓기', 6.55, 2.2, 21.3, '#2c8a43'), open: () => openMini('cups') },
+    { name: '3D 큐브', noChip: true, action: '큐브 맞추기', stand: [7.4,20.3], objs: [cubeGroup],
+      label: pinLabel('3D 큐브',7.5,1.8,21.25,'#6a3fa8'), open:()=>openMini('cube') },
     { name: '낙서장', noChip: true, action: '낙서장 보기', stand: [4.9, 19.7], objs: [doodleGroup],
       label: pinLabel('낙서장', 5.55, 2.15, 18.9, '#b92a2c'), open: () => openDoodle() },
     { name: '탈의실 정리', noChip: true, action: '탈의실 정리 시작', stand: [1.75, 19.2], objs: [tidyGroup],
@@ -1308,7 +1320,7 @@ function boot() {
     addPlace(n, () => walkTo(x, z));
   });
   if (document.fonts && document.fonts.load) {
-    Promise.all(['110px "Black Han Sans"'].map(f => document.fonts.load(f, '수련장 게시판 미트 격파 안내문')))
+    Promise.all(['110px "Black Han Sans"'].map(f => document.fonts.load(f, '수련장 게시판 겨루기 안내문')))
       .then(() => redraws.forEach(fn => fn())).catch(() => {});
   }
   const tapRing = new THREE.Mesh(new THREE.RingGeometry(.2, .3, 24),
@@ -1617,7 +1629,9 @@ function boot() {
   });
   // 이번 판으로 새 도장을 찍었으면 결과 화면에 넣을 문구를 돌려준다
   function stampNews(id, score) {
-    const s = stampOf(id), result = recordDailyScore(id, score);
+    const s = stampOf(id);
+    if (!s) return '';
+    const result = recordDailyScore(id, score);
     goldMedal.visible = goldEarned();
     if (result.previous >= s.need || score < s.need) return '';
     const count = DOJANG.stamps.filter(stampDone).length;
@@ -1933,10 +1947,8 @@ function boot() {
     show();
   }
 
-  // ---------- 미트 격파 ----------
-  const TOTAL = 12;
+  // ---------- 겨루기 ----------
   const mits = { L: $('mitL'), R: $('mitR') };
-  const rings = { L: mits.L.querySelector('.ring'), R: mits.R.querySelector('.ring') };
   let audio = null, game = null, gameRaf = 0;
   function initAudio() {
     if (audio) return;
@@ -1954,126 +1966,103 @@ function boot() {
     o.start(t); o.stop(t + .14);
   }
   function setCard(html) { const c = $('gCard'); c.innerHTML = html; c.hidden = false; }
-  const bestScore = () => Number(store.get('dojang-best')) || 0;
+  const duelCanvas = document.createElement('canvas');
+  duelCanvas.className = 'duel-canvas';
+  duelCanvas.setAttribute('aria-label', '청 선수와 홍 선수의 겨루기');
+  $('game').insertBefore(duelCanvas, $('game').querySelector('.mits'));
+  const duelContext = duelCanvas.getContext('2d');
+  const bestScore = () => Number(store.get('dojang-best-sparring-v1')) || 0;
   function openGameIntro() {
-    keys.clear();
-    $('game').hidden = false;
-    const best = bestScore();
-    setCard(`<h2>미트 격파</h2>
-      <p>줄어드는 원이 미트 테두리에 닿을 때 그 미트를 누르세요. 모두 ${TOTAL}번 차요. 정확할수록 높은 띠를 받아요.</p>
-      ${best ? `<p>내 최고 점수 ${best}점</p>` : ''}
-      ${stampGoal('mit')}
-      <div class="row"><button class="btn-main" id="gStart">시작</button><button class="btn-sub" id="gBack">도장으로 돌아가기</button></div>`);
-    $('gStart').addEventListener('click', startGame);
-    $('gBack').addEventListener('click', closeGame);
-    $('gStart').focus();
+    keys.clear(); $('game').hidden = false;
+    $('gLabelScore').textContent = '내 점수'; $('gLabelCombo').textContent = '상대 점수'; $('gLabelLeft').textContent = '남은 시간';
+    setCard(`<h2>겨루기</h2><p>컴퓨터 상대와 20초 대결! 공격은 2점, 상대의 공격 예고가 뜨면 방어하세요. 막은 직후 반격은 3점이에요. 상대가 방어 중이면 공격이 막혀요.</p>
+      <p>공격: 왼쪽 버튼 / ← · 방어: 오른쪽 버튼 / →</p>
+      ${bestScore() ? `<p>내 최고 점수 ${bestScore()}점</p>` : ''}${stampGoal('mit')}
+      <div class="row"><button class="btn-main" id="gStart">대결 시작</button><button class="btn-sub" id="gBack">도장으로 돌아가기</button></div>`);
+    $('gStart').addEventListener('click', startGame); $('gBack').addEventListener('click', closeGame); $('gStart').focus();
   }
-  function closeGame() {
-    cancelAnimationFrame(gameRaf);
-    game = null;
-    rings.L.style.opacity = rings.R.style.opacity = 0;
-    $('game').hidden = true;
-  }
+  function closeGame() { cancelAnimationFrame(gameRaf); game = null; $('game').hidden = true; }
   $('gClose').addEventListener('click', closeGame);
   function startGame() {
-    initAudio();
-    if (audio && audio.state === 'suspended') audio.resume();
+    initAudio(); if (audio && audio.state === 'suspended') audio.resume();
     $('gCard').hidden = true;
-    const beats = [];
-    for (let i = 0; i < TOTAL; i++) {
-      let side = Math.random() < .5 ? 'L' : 'R';
-      if (i >= 2 && beats[i - 1].side === beats[i - 2].side) side = beats[i - 1].side === 'L' ? 'R' : 'L';
-      const k = i / (TOTAL - 1);
-      beats.push({ side, T: 1150 - 470 * k, gap: 380 - 160 * k });
-    }
-    game = { beats, i: 0, active: false, start: 0, next: performance.now() + 700, score: 0, combo: 0, weight: 0 };
-    $('gScore').textContent = '0';
-    $('gCombo').textContent = '0';
-    $('gLeft').textContent = TOTAL;
-    $('gCall').textContent = '준비';
-    $('gCall').className = 'game-call';
-    $('gFoot').textContent = matchMedia('(pointer: fine)').matches ? '키보드 ← → 로도 찰 수 있어요' : '';
+    game = { time: 0, last: performance.now(), score: 0, opponent: 0, nextAttack: 1.5, warned: false, guardUntil: 0, guardReady: 0, kickReady: 0, counterUntil: 0, kickUntil: 0, enemyKickUntil: 0, messageUntil: 0 };
+    setCall('준비!', ''); $('gFoot').textContent = '공격 예고 → 방어 → 반격!';
     gameRaf = requestAnimationFrame(gameLoop);
+  }
+  function enemyGuarding() { return game && Math.floor(game.time / .85) % 3 === 1; }
+  function duelMessage(text, good = false) { setCall(text, good ? 'perfect' : ''); game.messageUntil = game.time + .55; }
+  function judge(action) {
+    if (!game) return;
+    const t = game.time;
+    if (action === 'R') {
+      if (t < game.guardReady) return;
+      game.guardUntil = t + .48; game.guardReady = t + .7;
+      duelMessage('방어!');
+    } else {
+      if (t < game.kickReady || t < game.guardUntil) return;
+      game.kickReady = t + .6; game.kickUntil = t + .22;
+      if (t < game.counterUntil) { game.score += 3; game.counterUntil = 0; duelMessage('반격! +3점', true); thwack(300, .3); }
+      else if (enemyGuarding()) { duelMessage('상대가 막았어요'); thwack(90, .2); }
+      else { game.score += 2; duelMessage('몸통 공격! +2점', true); thwack(220, .3); }
+    }
   }
   function gameLoop(now) {
     if (!game) return;
-    if (!game.active) {
-      if (game.i >= TOTAL) return endGame();
-      if (now >= game.next) {
-        game.active = true;
-        game.start = now;
-        if (game.i === 0) $('gCall').textContent = '';
-      }
+    const dt = Math.min(.05, (now - game.last) / 1000); game.last = now; game.time += dt;
+    if (game.time >= 20) return endGame();
+    if (!game.warned && game.time >= game.nextAttack - .65) { game.warned = true; duelMessage('상대 공격 준비! 방어하세요'); game.messageUntil = game.nextAttack; }
+    if (game.time >= game.nextAttack) {
+      game.enemyKickUntil = game.time + .24;
+      if (game.time < game.guardUntil) { game.guardUntil = 0; game.counterUntil = game.time + .75; duelMessage('막았어요! 지금 반격!', true); }
+      else { game.opponent += 2; duelMessage('상대 득점 +2'); }
+      game.nextAttack = game.time + 1.3 + Math.random() * .6; game.warned = false;
     }
-    if (game.active) {
-      const b = game.beats[game.i], t = now - game.start, ring = rings[b.side];
-      ring.style.transform = `scale(${Math.max(.7, 1 + (1 - t / b.T))})`;
-      ring.style.opacity = Math.min(1, t / 160);
-      if (t > b.T + 200) judge(null, now);
-    }
-    gameRaf = requestAnimationFrame(gameLoop);
+    if (game.time > game.messageUntil) setCall(enemyGuarding() ? '상대 방어 중' : '공격 기회!', '');
+    $('gScore').textContent = game.score; $('gCombo').textContent = game.opponent; $('gLeft').textContent = Math.ceil(20 - game.time);
+    drawDuel(); gameRaf = requestAnimationFrame(gameLoop);
   }
-  function judge(side, now) {
-    if (!game || !game.active) return;
-    const b = game.beats[game.i], dt = now - (game.start + b.T), abs = Math.abs(dt);
-    let call;
-    if (side === null || side !== b.side || abs > 200) call = 'miss';
-    else call = abs <= 90 ? 'perfect' : 'good';
-    if (call === 'miss') {
-      game.combo = 0;
-      setCall(side === null ? '놓쳤어요' : side !== b.side ? '반대쪽이에요' : dt < 0 ? '빨라요' : '늦었어요', 'miss');
-    } else {
-      game.combo++;
-      game.score += (call === 'perfect' ? 100 : 60) + (game.combo - 1) * 10;
-      game.weight += call === 'perfect' ? 1 : .6;
-      setCall(call === 'perfect' ? '기합!' : '좋아요', call === 'perfect' ? 'perfect' : '');
-      thwack(call === 'perfect' ? 240 : 170, .5);
-      const m = mits[side];
-      m.classList.remove('hit');
-      void m.offsetWidth;
-      m.classList.add('hit');
-    }
-    rings[b.side].style.opacity = 0;
-    game.active = false;
-    game.next = now + b.gap;
-    game.i++;
-    $('gScore').textContent = game.score;
-    $('gCombo').textContent = game.combo;
-    $('gLeft').textContent = TOTAL - game.i;
+  function drawDuel() {
+    const r = duelCanvas.getBoundingClientRect(), dpr = Math.min(devicePixelRatio || 1, 2), W = r.width, H = r.height;
+    if (duelCanvas.width !== Math.round(W*dpr) || duelCanvas.height !== Math.round(H*dpr)) { duelCanvas.width = Math.round(W*dpr); duelCanvas.height = Math.round(H*dpr); }
+    const g = duelContext; g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.fillStyle = '#d6e3ee'; g.fillRect(0, 0, W, H); g.fillStyle = '#417cc2'; g.fillRect(0, H*.7, W, H*.3);
+    g.fillStyle = '#cf4545'; g.fillRect(W*.3, H*.7, W*.4, H*.3);
+    const h = Math.min(H*.65, W*.34), feet = H*.83;
+    [0,1].forEach(i => {
+      const x = W*(i ? .7 : .3), kick = game.time < (i ? game.enemyKickUntil : game.kickUntil), guard = i ? enemyGuarding() : game.time < game.guardUntil;
+      drawKid(g, x, feet, h, { swing: kick ? .9 : .08 });
+      g.fillStyle = i ? '#d6322a' : '#1d5dc2'; g.fillRect(x-h*.15, feet-h*.65, h*.3, h*.3);
+      if (kick) { g.strokeStyle = '#fff'; g.lineWidth = h*.1; g.beginPath(); g.moveTo(x,feet-h*.27); g.lineTo(x+(i ? -1 : 1)*h*.55,feet-h*.48); g.stroke(); }
+      if (guard) { g.strokeStyle = '#f0c419'; g.lineWidth = 5; g.beginPath(); g.arc(x,feet-h*.47,h*.36,0,Math.PI*2); g.stroke(); }
+      g.fillStyle = '#161f38'; g.font = 'bold 16px sans-serif'; g.textAlign = 'center'; g.fillText(i ? '상대 · 홍' : '나 · 청', x, Math.max(18,feet-h-12));
+    });
   }
   function setCall(text, cls) { const c = $('gCall'); c.textContent = text; c.className = 'game-call ' + cls; }
   function endGame() {
-    const acc = game.weight / TOTAL, score = game.score;
-    const earned = BELTS.reduce((best, b, i) => acc >= b.min ? i : best, 0), belt = BELTS[earned];
-    const best = bestScore(), isBest = score > best;
-    if (isBest) store.set('dojang-best', score);
-    const prev = Math.max(0, BELTS.findIndex(b => b.name === store.get('dojang-belt')));
-    const raised = earned > prev;
-    if (raised) { store.set('dojang-belt', belt.name); me.beltMat.color.setHex(belt.color); }
+    const score = game.score, opponent = game.opponent, best = bestScore();
+    if (score > best) store.set('dojang-best-sparring-v1', score);
+    const earned = BELTS.reduce((best,b,i)=>Math.min(1,score/36)>=b.min?i:best,0);
+    const previous = Math.max(0,BELTS.findIndex(b=>b.name===store.get('dojang-belt')));
+    if(earned>previous) { store.set('dojang-belt',BELTS[earned].name); me.beltMat.color.setHex(BELTS[earned].color); }
     game = null;
-    setCard(`<div class="belt-bar" style="background:${belt.css}"></div>
-      <h2>${belt.name}</h2>
-      <p>${score}점 · 정확도 ${Math.round(acc * 100)}%${isBest && best ? ' · 최고 기록이에요' : ''}</p>
-      <p>${raised ? `캐릭터 띠가 ${belt.name}로 바뀌었어요.` : '더 정확하게 차면 더 높은 띠를 받아요.'}</p>
-      ${stampNews('mit', score)}
-      <div class="row"><button class="btn-main" id="gAgain">다시 하기</button><button class="btn-sub" id="gBack">도장으로 돌아가기</button></div>`);
-    $('gAgain').addEventListener('click', startGame);
-    $('gBack').addEventListener('click', closeGame);
-    $('gAgain').focus();
+    setCard(`<h2>${score > opponent ? '승리!' : score === opponent ? '무승부!' : '다시 도전!'}</h2><p>나 ${score} : ${opponent} 상대 · 20초 겨루기</p>${stampNews('mit', score)}
+      <div class="row"><button class="btn-main" id="gAgain">다시 겨루기</button><button class="btn-sub" id="gBack">도장으로 돌아가기</button></div>`);
+    $('gAgain').addEventListener('click', startGame); $('gBack').addEventListener('click', closeGame); $('gAgain').focus();
   }
-  function bindMit(id, side) { mits[id].addEventListener('pointerdown', e => { e.preventDefault(); judge(side, performance.now()); }); }
-  bindMit('L', 'L'); bindMit('R', 'R');
+  mits.L.addEventListener('pointerdown', e => { e.preventDefault(); judge('L'); });
+  mits.R.addEventListener('pointerdown', e => { e.preventDefault(); judge('R'); });
   function gameKey(e) {
     if (!game) return;
-    if (['ArrowLeft', 'KeyF', 'KeyA'].includes(e.code)) { e.preventDefault(); if (!e.repeat) judge('L', performance.now()); }
-    if (['ArrowRight', 'KeyJ', 'KeyL'].includes(e.code)) { e.preventDefault(); if (!e.repeat) judge('R', performance.now()); }
+    if (['ArrowLeft','KeyF','KeyA','ArrowRight','KeyJ','KeyL'].includes(e.code)) { e.preventDefault(); if (!e.repeat) judge(['ArrowLeft','KeyF','KeyA'].includes(e.code) ? 'L' : 'R'); }
   }
+
 
   // ---------- 축구·농구 ----------
   // 게임 안 좌표: x 좌우, y 높이, z 앞쪽 거리(m). 공은 z=0에서 출발해 화면을 쓸어 올린 만큼 날아간다
   const SHOTS = 8, GRAVITY = 9.8;
   const SHOT_INFO = {
-    soccer: { title: '축구', help: '공을 위로 쓱 밀어서 차세요. 옆으로 밀면 그쪽으로, 길게 밀면 높게 날아가요. 골키퍼를 피해서 넣어보세요.', foot: '화면을 위로 쓸어서 슛!', r: .17, y0: .17 },
+    soccer: { title: '축구', help: '공을 위로 쓱 밀어서 차세요. 옆으로 밀면 그쪽으로, 길게 밀면 높게 날아가요. 골키퍼가 슛 방향을 보고 따라와요. 양쪽 구석이나 높은 슛을 노려보세요.', foot: '화면을 위로 쓸어서 슛!', r: .17, y0: .17 },
     basket: { title: '농구', help: '공을 위로 쓱 밀어서 던지세요. 길게 밀수록 멀리 날아가요. 골대가 점점 멀어져요.', foot: '화면을 위로 쓸어서 슛!', r: .16, y0: 1.1 }
   };
   const GOAL = { z: 9, half: 2.4, h: 2.2 };
@@ -2131,6 +2120,7 @@ function boot() {
   function resetBall() {
     const info = SHOT_INFO[shot.mode];
     shot.ball = { x: 0, y: info.y0, z: 0, vx: 0, vy: 0, vz: 0, spin: 0 };
+    shot.keeper = Math.sin(shot.clock * 1.7) * 1.7; shot.keeperTarget = shot.keeper;
     shot.flight = 0; shot.judged = false; shot.drag = null; shot.aim = null;
     if (shot.mode === 'basket') {
       const [z, x] = HOOP_STEPS[Math.min(shot.i, SHOTS - 1)];
@@ -2161,6 +2151,7 @@ function boot() {
     b.vx = aim.x / T;
     b.vz = aim.z / T;
     b.vy = (aim.y - b.y + .5 * GRAVITY * T * T) / T;
+    shot.keeperTarget = Math.max(-1.85, Math.min(1.85, aim.x));
     shot.aimZ = aim.z;
     shot.state = 'fly';
     shot.flight = 0;
@@ -2208,16 +2199,23 @@ function boot() {
   }
   function stepShot(dt) {
     shot.clock += dt;
+    if (shot.mode === 'soccer') {
+      const target = shot.state === 'fly' && shot.flight > .26 ? shot.keeperTarget : Math.sin(shot.clock * (1.7 + shot.i * .16)) * 1.7;
+      const step = (2.4 + shot.i * .1) * dt;
+      shot.keeper += Math.max(-step, Math.min(step, target - shot.keeper));
+    }
     if (shot.state !== 'fly') return;
     const b = shot.ball, px = b.y, pz = b.z, r = SHOT_INFO[shot.mode].r;
     shot.flight += dt;
-    b.x += b.vx * dt; b.y += b.vy * dt; b.z += b.vz * dt;
+    b.x += b.vx * dt; b.y += b.vy * dt - .5 * GRAVITY * dt * dt; b.z += b.vz * dt;
     b.vy -= GRAVITY * dt;
     b.spin += b.vz * dt;
     if (shot.mode === 'soccer') {
       if (pz < GOAL.z && b.z >= GOAL.z && !shot.judged) {
-        const kx = keeperX(), inGoal = Math.abs(b.x) < GOAL.half && b.y < GOAL.h;
-        if (inGoal && Math.abs(b.x - kx) < .55 + r && b.y < 1.6) {
+        const crossing = (GOAL.z - pz) / (b.z - pz);
+        const hitX = b.x - b.vx * dt * (1-crossing), hitY = px + (b.y-px)*crossing;
+        const kx = keeperX(), inGoal = Math.abs(hitX) + r < GOAL.half && hitY + r < GOAL.h;
+        if (inGoal && Math.abs(hitX - kx) < .62 + r && hitY < 1.8) {
           b.vz = -Math.abs(b.vz) * .3; b.vx *= .4;
           shotResult(false, '골키퍼가 막았어요');
         } else if (inGoal) {
@@ -2273,8 +2271,7 @@ function boot() {
     $('sStart').focus();
   }
   function keeperX() {
-    const speed = 1.1 + shot.i * .28;
-    return Math.sin(shot.clock * speed) * 1.75;
+    return shot.keeper ?? 0;
   }
   function floorRect(x1, z1, x2, z2, color) {
     const a = project(x1, 0, z2), b = project(x2, 0, z2), c = project(x2, 0, z1), d = project(x1, 0, z1);
@@ -2406,6 +2403,7 @@ function boot() {
     $('mCall').textContent = '';
     $('mBody').hidden = !def.dom;
     $('mBody').textContent = '';
+    $('mBody').style.justifyContent = '';
     mc.hidden = !!def.dom;
     $('mFoot').textContent = '';
     $('mLabel1').textContent = def.labels[0];
@@ -2555,15 +2553,86 @@ function boot() {
   const TIDY_MAX = 8, FOLD_TIME = 40;
   const TIDY_KINDS = [{ name: '가방' }, { name: '도복' }, { name: '띠' }, { name: '옷' }, { name: '빨래통' }];
 
+  // 2×2 cube: rotate both sticker positions and normals, so every move is reversible.
+  const CUBE_FACES = [
+    { name:'앞', key:'F', axis:2, sign:1, color:'#27a34b' },
+    { name:'뒤', key:'B', axis:2, sign:-1, color:'#245de0' },
+    { name:'오른쪽', key:'R', axis:0, sign:1, color:'#e43c32' },
+    { name:'왼쪽', key:'L', axis:0, sign:-1, color:'#f68b25' },
+    { name:'위', key:'U', axis:1, sign:1, color:'#fafafa' },
+    { name:'아래', key:'D', axis:1, sign:-1, color:'#f5d328' }
+  ];
+  function cubeSolvedState() {
+    return CUBE_FACES.flatMap(f => [-.5,.5].flatMap(a => [-.5,.5].map(b => {
+      const p=[0,0,0], n=[0,0,0], axes=[0,1,2].filter(i=>i!==f.axis);
+      p[f.axis]=f.sign; n[f.axis]=f.sign; p[axes[0]]=a; p[axes[1]]=b;
+      return { p,n,color:f.color };
+    })));
+  }
+  function cubeTurn(stickers, face, dir) {
+    const turn = v => {
+      const i=(face.axis+1)%3, j=(face.axis+2)%3, a=v[i];
+      v[i]=-dir*v[j]; v[j]=dir*a;
+    };
+    stickers.forEach(st => { if(st.p[face.axis]*face.sign>0) { turn(st.p); turn(st.n); } });
+  }
+  function cubeIsSolved(stickers) {
+    return CUBE_FACES.every(f => new Set(stickers.filter(st=>st.n[f.axis]===f.sign).map(st=>st.color)).size===1);
+  }
+  function renderCube(s) {
+    const body=$('mBody'); body.replaceChildren(); body.style.justifyContent='flex-start';
+    const canvas=document.createElement('canvas'); canvas.width=canvas.height=360;
+    canvas.style.cssText='display:block;width:min(100%,300px);height:auto;align-self:center;flex:none;background:#202b43;';
+    canvas.setAttribute('role','img'); canvas.setAttribute('aria-label','2×2 입체 큐브. 아래 면 회전 버튼으로 색을 맞추세요.'); body.appendChild(canvas);
+    const g=canvas.getContext('2d'), yaw=s.yaw, pitch=s.pitch ?? .5;
+    const depth = v => v[0]*Math.sin(yaw)*Math.cos(pitch)+v[1]*Math.sin(pitch)+v[2]*Math.cos(yaw)*Math.cos(pitch);
+    const project = v => {
+      const k=116/(1-depth(v)*.12);
+      return [180+(v[0]*Math.cos(yaw)-v[2]*Math.sin(yaw))*k,180-(v[1]*Math.cos(pitch)-(v[0]*Math.sin(yaw)+v[2]*Math.cos(yaw))*Math.sin(pitch))*k];
+    };
+    s.stickers.filter(st=>depth(st.n)>0).sort((a,b)=>depth(a.p)-depth(b.p)).forEach(st=>{
+      const axis=st.n.findIndex(v=>v!==0), axes=[0,1,2].filter(i=>i!==axis);
+      const pts=[[-1,-1],[1,-1],[1,1],[-1,1]].map(([a,b])=>{
+        const p=st.p.slice(); p[axes[0]]+=a*.46; p[axes[1]]+=b*.46; return project(p);
+      });
+      g.beginPath(); pts.forEach(([x,y],i)=>i?g.lineTo(x,y):g.moveTo(x,y)); g.closePath(); g.fillStyle=st.color; g.fill(); g.strokeStyle='#101621'; g.lineWidth=3; g.stroke();
+    });
+    const button=(label,fn,parent) => { const b=document.createElement('button'); b.className='btn-sub'; b.textContent=label; b.addEventListener('click',()=>{ if(mini && mini.running && mini.s===s) fn(); }); parent.appendChild(b); };
+    const view=document.createElement('div'); view.className='row'; view.style.cssText='display:flex;gap:6px;justify-content:center;flex-wrap:wrap;'; body.appendChild(view);
+    button('다른 쪽 보기',()=>{s.yaw+=Math.PI/2;renderCube(s);},view);
+    button('위·아래 보기',()=>{s.pitch=-(s.pitch ?? .5);renderCube(s);},view);
+    button('한 수 되돌리기',()=>{const m=s.history.pop();if(m){cubeTurn(s.stickers,CUBE_FACES[m.face],-m.dir);s.moves++;renderCube(s);miniStats();}},view);
+    const controls=document.createElement('div'); controls.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:6px;'; body.appendChild(controls);
+    CUBE_FACES.forEach((f,face)=>[-1,1].forEach(dir=>button(`${f.name} ${dir<0?'↻':'↺'}`,()=>{
+      cubeTurn(s.stickers,f,dir*f.sign); s.history.push({face,dir:dir*f.sign});s.moves++; miniStats();
+      if(cubeIsSolved(s.stickers)) return finishMini(Math.max(1,1000-s.moves*10),`${s.moves}회 조작으로 큐브 완성!`);
+      renderCube(s);
+    },controls)));
+    const hint=document.createElement('p'); hint.style.cssText='font-size:13px;text-align:center;';
+    hint.textContent='각 면을 정면에서 봤을 때의 회전 방향이에요. 보기 버튼으로 뒤쪽과 아래쪽도 확인하세요.'; body.appendChild(hint);
+  }
+
   const MINI = {
+    cube: {
+      dom:true, title:'3D 큐브', unit:'점', labels:['움직인 횟수','목표'], foot:'각 면의 색을 같게 맞춰보세요',
+      help:'2×2 큐브를 5번 섞었어요. 면 회전 버튼으로 6면의 색을 맞추세요. 다른 쪽 보기로 뒤쪽도 확인할 수 있어요. 보너스 게임이라 도장 조건에는 포함되지 않아요.',
+      init() {
+        const s={stickers:cubeSolvedState(),moves:0,history:[],yaw:.65};
+        do { s.stickers=cubeSolvedState(); for(let i=0,last=-1;i<5;i++) { let face;do{face=Math.floor(Math.random()*6);}while(face===last);last=face;cubeTurn(s.stickers,CUBE_FACES[face],Math.random()<.5?-1:1); } }while(cubeIsSolved(s.stickers));
+        setTimeout(()=>{if(mini&&mini.s===s) renderCube(s);}); return s;
+      },
+      stats:s=>[s.moves,'6면 완성']
+    },
     // 줄이 발밑에 올 때 공중에 있어야 한다
     rope: {
       title: '줄넘기', unit: '개', labels: ['넘은 개수', '남은 기회'], foot: '줄이 발밑에 오기 전에 화면을 누르세요',
-      help: '줄이 내려올 때 화면을 눌러 뛰어넘으세요. 3번 걸리면 끝나요. 갈수록 빨라져요.',
-      init: () => ({ count: 0, left: 3, phase: .35, period: 1.25, jump: -1, y: 0, flash: 0 }),
+      help: '줄이 내려올 때 화면을 눌러 뛰어넘으세요. 25초 또는 3번 걸리면 끝나요. 처음부터 빠르게, 갈수록 더 빨라져요.',
+      init: () => ({ count: 0, left: 3, phase: .35, period: .95, time: 0, jump: -1, y: 0, flash: 0 }),
       stats: s => [s.count, s.left],
       tap(s) { if (s.jump < 0) { s.jump = 0; thwack(120, .12); } },
       step(s, dt) {
+        s.time += dt;
+        if (s.time >= 25) return finishMini(s.count, `25초 동안 ${s.count}개를 넘었어요`);
         const prev = s.phase;
         s.phase += dt / s.period;
         s.flash = Math.max(0, s.flash - dt);
@@ -2576,7 +2645,7 @@ function boot() {
         if (Math.floor(prev) !== Math.floor(s.phase)) {
           if (s.y > .08) {
             s.count++;
-            s.period = Math.max(.58, s.period * .975);
+            s.period = Math.max(.46, s.period * .965);
             miniCall(s.count % 10 === 0 ? `${s.count}개!` : '', true);
             if (s.count % 10 === 0) thwack(420, .3);
           } else {
@@ -2636,7 +2705,7 @@ function boot() {
     // 움직이는 컵을 자리 위에서 떨어뜨려 피라미드를 쌓는다
     cups: {
       pointOnly: false, title: '컵 쌓기', unit: '점', labels: ['쌓은 컵', '실수'], foot: '컵이 빈자리 위에 올 때 화면을 누르세요',
-      help: '좌우로 움직이는 컵을 빈자리 위에서 떨어뜨려 피라미드를 쌓으세요. 빠르고 정확할수록 점수가 높아요.',
+      help: '좌우로 움직이는 컵을 빈자리 위에서 떨어뜨려 피라미드를 쌓으세요. 가로·세로 모두 같은 폭과 리듬으로 움직여요. 빠르고 정확할수록 점수가 높아요.',
       init: () => cupLevel({ level: 0, placed: 0, misses: 0, time: 0 }),
       stats: s => [s.placed, s.misses],
       tap(s) { if (!s.fall && s.wait <= 0) { s.fall = { x: s.x, y: 0, v: 0 }; thwack(170, .1); } },
@@ -2645,9 +2714,9 @@ function boot() {
         s.time += dt;
         s.wait = Math.max(0, s.wait - dt);
         if (!s.fall) {
-          s.x += s.dir * Math.min(W, 420) * (.5 + s.level * .22) * dt;
-          if (s.x < L.cw * .6) { s.x = L.cw * .6; s.dir = 1; }
-          if (s.x > W - L.cw * .6) { s.x = W - L.cw * .6; s.dir = -1; }
+          s.x += s.dir * (1.15 + s.level * .25) * dt;
+          if (s.x < -1) { s.x = -1; s.dir = 1; }
+          if (s.x > 1) { s.x = 1; s.dir = -1; }
           return;
         }
         const f = s.fall, target = L.y(slot);
@@ -2658,7 +2727,7 @@ function boot() {
           return;
         }
         if (L.top + f.y >= target) {
-          if (Math.abs(f.x - L.x(slot)) < L.cw * .36) {
+          if (Math.abs(W / 2 + f.x * L.range - L.x(slot)) < L.cw * .36) {
             s.placedHere.push(s.n);
             s.placed++;
             s.n++;
@@ -2696,20 +2765,22 @@ function boot() {
           g.globalAlpha = 1;
         };
         s.slots.forEach((slot, i) => { if (i >= s.n && i !== s.n) return; cup(L.x(slot), L.y(slot), colors[slot.row % colors.length], i === s.n); });
-        if (s.fall) cup(s.fall.x, L.top + s.fall.y, colors[s.slots[s.n].row % colors.length]);
-        else cup(s.x, L.top, colors[s.slots[s.n].row % colors.length]);
+        if (s.fall) cup(W / 2 + s.fall.x * L.range, L.top + s.fall.y, colors[s.slots[s.n].row % colors.length]);
+        else cup(W / 2 + s.x * L.range, L.top, colors[s.slots[s.n].row % colors.length]);
       }
     },
     // 달리는 동안 쌓아둔 매트를 뛰어넘는다
     run: {
       title: '매트 달리기', unit: 'm', labels: ['거리(m)', '남은 기회'], foot: '화면을 누르면 점프해요',
-      help: '달리는 동안 화면을 눌러 매트를 뛰어넘으세요. 3번 부딪히면 끝나요. 갈수록 빨라져요.',
-      init: () => ({ dist: 0, speed: 5, y: 0, vy: 0, left: 3, obs: [], next: 1.4, safe: 0, leg: 0 }),
+      help: '달리는 동안 화면을 눌러 매트를 뛰어넘으세요. 25초 또는 3번 부딪히면 끝나요. 빠르게 다가오는 매트를 넘으세요.',
+      init: () => ({ dist: 0, speed: 7, time: 0, y: 0, vy: 0, left: 3, obs: [], next: 1, safe: 0, leg: 0 }),
       stats: s => [Math.floor(s.dist), s.left],
       tap(s) { if (s.y <= 0) { s.vy = 8.8; thwack(130, .12); } },
       step(s, dt) {
+        s.time += dt;
+        if (s.time >= 25) return finishMini(Math.floor(s.dist), `25초 동안 ${Math.floor(s.dist)}m를 달렸어요`);
         s.dist += s.speed * dt;
-        s.speed = Math.min(11, 5 + s.dist / 28);
+        s.speed = Math.min(13, 7 + s.dist / 22);
         s.leg += dt * s.speed * 1.6;
         s.safe = Math.max(0, s.safe - dt);
         if (s.y > 0 || s.vy > 0) { s.y += s.vy * dt; s.vy -= 22 * dt; if (s.y <= 0) { s.y = 0; s.vy = 0; } }
@@ -2718,7 +2789,7 @@ function boot() {
           const kinds = [{ w: 1.5, h: .45, c: ['#1d5dc2', '#c9302c'] }, { w: 1, h: .9, c: ['#e6bd1f', '#1d5dc2', '#c9302c'], wedge: true }, { w: .9, h: 1.15, c: ['#2c8a43', '#e6bd1f', '#1d5dc2'] }];
           const kind = kinds[Math.floor(Math.random() * kinds.length)];
           s.obs.push(Object.assign({ x: 12 }, kind));
-          s.next = 1 + Math.random() * .9 + 3 / s.speed;
+          s.next = .9 + Math.random() * .5 + 2 / s.speed;
         }
         s.obs.forEach(o => { o.x -= s.speed * dt; });
         s.obs = s.obs.filter(o => o.x + o.w > -3);
@@ -2769,8 +2840,8 @@ function boot() {
     // 불이 들어온 쿠션을 재빨리 누른다
     pads: {
       pointOnly: true, title: '쿠션 벽 터치', unit: '점', labels: ['점수', '남은 시간'], foot: '빨갛게 켜진 쿠션을 누르세요',
-      help: '20초 동안 빨갛게 켜지는 쿠션을 최대한 빨리 눌러보세요. 연속으로 맞히면 점수가 더 올라가요.',
-      init() { const s = { score: 0, left: 20, target: 0, life: 1.2, combo: 0, flash: -1, flashT: 0 }; padNext(s); return s; },
+      help: '15초 동안 빨갛게 켜지는 쿠션을 최대한 빨리 눌러보세요. 연속으로 맞히면 점수가 더 올라가요.',
+      init() { const s = { score: 0, left: 15, target: 0, life: .8, combo: 0, flash: -1, flashT: 0 }; padNext(s); return s; },
       stats: s => [s.score, Math.ceil(s.left)],
       tap(s, x, y) {
         const hit = padAt(x, y);
@@ -2794,7 +2865,7 @@ function boot() {
         s.flashT = Math.max(0, s.flashT - dt);
         if (s.life <= 0) { s.combo = 0; padNext(s); }
         miniStats();
-        if (s.left <= 0) finishMini(s.score, `20초 동안 ${s.score}점을 얻었어요`);
+        if (s.left <= 0) finishMini(s.score, `15초 동안 ${s.score}점을 얻었어요`);
       },
       draw(g, W, H, s) {
         g.fillStyle = '#ecebe3'; g.fillRect(0, 0, W, H);
@@ -3190,13 +3261,13 @@ function boot() {
     s.base = n;
     s.slots = [];
     for (let row = 0; row < n; row++) for (let i = 0; i < n - row; i++) s.slots.push({ row, i, count: n - row });
-    s.n = 0; s.x = 40; s.dir = 1; s.fall = null; s.placedHere = []; s.wait = .2;
+    s.n = 0; s.x = -1; s.dir = 1; s.fall = null; s.placedHere = []; s.wait = .2;
     return s;
   }
   function cupLayout(s, W, H) {
-    const cw = Math.min(W * .85 / Math.max(s.base, 4), 90), ch = cw * 1.05, floorY = H * .82;
+    const cw = Math.min(W * .85 / Math.max(s.base, 4), H * .14, 70), ch = cw * 1.05, floorY = H * .82;
     return {
-      cw, ch, top: Math.max(cw * 1.1, H * .14),
+      cw, ch, range: cw * 1.8, top: Math.max(cw * 1.1, H * .14),
       x: slot => W / 2 + (slot.i - (slot.count - 1) / 2) * cw,
       y: slot => floorY - slot.row * ch
     };
@@ -3214,7 +3285,7 @@ function boot() {
     let n = s.target;
     while (n === s.target) n = Math.floor(Math.random() * PAD_COUNT);
     s.target = n;
-    s.maxLife = s.life = Math.max(.6, 1.2 - (20 - s.left) * .03);
+    s.maxLife = s.life = Math.max(.32, .8 - (15 - s.left) * .032);
   }
   function renderQuiz(s) {
     const body = $('mBody');
@@ -3281,7 +3352,7 @@ function boot() {
   function openGameMenu() {
     openSheet('게임');
     const body = $('sheetBody');
-    [['1관', ['미트 격파', '축구', '농구', '줄넘기', '품새 퀴즈']], ['2관', ['매트 달리기', '쿠션 벽 터치']], ['휴게실', ['컵 쌓기', '낙서장']], ['탈의실', ['탈의실 정리', '도복 개기']]].forEach(([room, names]) => {
+    [['1관', ['겨루기', '축구', '농구', '줄넘기', '품새 퀴즈']], ['2관', ['매트 달리기', '쿠션 벽 터치']], ['휴게실', ['컵 쌓기', '3D 큐브', '낙서장']], ['탈의실', ['탈의실 정리', '도복 개기']]].forEach(([room, names]) => {
       const h = document.createElement('h3');
       h.className = 'menu-room';
       h.textContent = room;
