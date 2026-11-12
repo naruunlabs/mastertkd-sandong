@@ -1663,7 +1663,7 @@ function boot() {
     if (!res.ok) throw new Error('doodle ' + res.status);
     return res.json();
   };
-  // 관리키는 이 화면을 닫으면 사라지며 공개 파일이나 저장소에 저장하지 않는다.
+  // 관리 세션은 새로고침하면 사라지며 공개 파일이나 저장소에 저장하지 않는다.
   let doodleAdminKey = '';
   let doodleAdminItems = [];
   const adminDoodleCall = extra => doodleCall('dojang_doodle_admin', {
@@ -1764,17 +1764,39 @@ function boot() {
     const manage = document.createElement('button');
     manage.className = 'doodle-tool';
     manage.textContent = doodleAdminKey ? '관리자 모드 종료' : '관리자 모드';
-    manage.addEventListener('click', async () => {
+    manage.addEventListener('click', () => {
       if (doodleAdminKey) { doodleAdminKey = ''; doodleAdminItems = []; return openDoodle(); }
-      const key = prompt('본인 전용 관리키를 입력해주세요. 기존 관리 주소의 # 뒤에 있는 값입니다.');
-      if (!key) return;
-      manage.disabled = true;
-      try {
-        const r = await doodleCall('dojang_doodle_admin', { p_site: DOJANG.doodle.site, p_key: key.trim() });
-        if (r.error) { head.textContent = '관리키가 맞지 않아요.'; return; }
-        doodleAdminKey = key.trim(); doodleAdminItems = r.items; openDoodle();
-      } catch (e) { head.textContent = '관리자 확인을 할 수 없어요. 다시 시도해주세요.'; }
-      finally { manage.disabled = false; }
+      if (body.querySelector('.doodle-login')) return;
+      const form = document.createElement('form'); form.className = 'doodle-login doodle-row';
+      const label = document.createElement('label'); label.textContent = '관리자 비밀번호 ';
+      const input = document.createElement('input');
+      input.type = 'password'; input.inputMode = 'numeric'; input.pattern = '[0-9]{6}';
+      input.maxLength = 6; input.required = true; input.autocomplete = 'off';
+      input.placeholder = '숫자 6자리'; input.style.cssText = 'font:inherit;width:9em;padding:10px;';
+      label.appendChild(input);
+      const submit = document.createElement('button'); submit.type = 'submit';
+      submit.className = 'doodle-tool'; submit.textContent = '확인';
+      const cancel = document.createElement('button'); cancel.type = 'button';
+      cancel.className = 'doodle-tool'; cancel.textContent = '취소';
+      cancel.addEventListener('click', () => form.remove());
+      form.append(label, submit, cancel); body.appendChild(form); input.focus();
+      form.addEventListener('submit', async e => {
+        e.preventDefault();
+        if (submit.disabled || !/^[0-9]{6}$/.test(input.value)) return;
+        submit.disabled = true;
+        try {
+          const login = await doodleCall('dojang_doodle_login', { p_site: DOJANG.doodle.site, p_pin: input.value });
+          input.value = '';
+          if (login.error) {
+            head.textContent = login.error === 'locked' ? '5회 잘못 입력해 5분 동안 잠겼어요. 잠시 뒤 다시 입력해주세요.' : '비밀번호가 맞지 않아요.';
+            return;
+          }
+          const r = await doodleCall('dojang_doodle_admin', { p_site: DOJANG.doodle.site, p_key: login.token });
+          if (r.error) throw new Error(r.error);
+          doodleAdminKey = login.token; doodleAdminItems = r.items; openDoodle();
+        } catch (e) { head.textContent = '관리자 확인을 할 수 없어요. 다시 시도해주세요.'; }
+        finally { submit.disabled = false; }
+      });
     });
     body.appendChild(manage);
   }
