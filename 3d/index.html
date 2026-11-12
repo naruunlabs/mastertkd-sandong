@@ -1651,7 +1651,7 @@ function boot() {
     }
   });
 
-  // ---------- 낙서장 ----------
+// ---------- 낙서장 ----------
   const DOODLE_MAX = 3000; // 1장 최대 바이트. 넘으면 잉크가 떨어진다
   const doodleCall = async (fn, body) => {
     const d = DOJANG.doodle;
@@ -1663,6 +1663,12 @@ function boot() {
     if (!res.ok) throw new Error('doodle ' + res.status);
     return res.json();
   };
+  // 관리키는 이 화면을 닫으면 사라지며 공개 파일이나 저장소에 저장하지 않는다.
+  let doodleAdminKey = '';
+  let doodleAdminItems = [];
+  const adminDoodleCall = extra => doodleCall('dojang_doodle_admin', {
+    p_site: DOJANG.doodle.site, p_key: doodleAdminKey, ...extra
+  });
   let doodlePublic = [];
   let doodleLoadVersion = 0;
   function refreshDoodleWall() {
@@ -1713,20 +1719,38 @@ function boot() {
     const body = $('sheetBody');
     const head = document.createElement('p');
     head.className = 'doodle-note';
-    head.textContent = note || '하루에 한 장 그릴 수 있어요. 벽에 걸면 친구들도 바로 볼 수 있어요.';
+    head.textContent = note || (doodleAdminKey ? '관리자 모드 · 낙서를 추가하거나 삭제할 수 있어요. 벽에는 최근 12장만 보여요.' : '하루에 한 장 그릴 수 있어요. 벽에 걸면 친구들도 바로 볼 수 있어요.');
     body.appendChild(head);
     const grid = document.createElement('div');
     grid.className = 'doodle-grid';
     const renderGrid = () => {
       grid.replaceChildren();
-      grid.hidden = !doodlePublic.length;
-      doodlePublic.forEach(item => {
+      grid.hidden = !(doodleAdminKey ? doodleAdminItems : doodlePublic).length;
+      (doodleAdminKey ? doodleAdminItems : doodlePublic).forEach(item => {
         const c = document.createElement('canvas');
         c.width = c.height = 220;
         c.setAttribute('role', 'img');
         c.setAttribute('aria-label', '아이가 그린 낙서');
         drawDoodle(c.getContext('2d'), doodleBytes(item.data), 220);
-        grid.appendChild(c);
+        const card = document.createElement('div');
+        card.appendChild(c);
+        if (doodleAdminKey) {
+          const del = document.createElement('button');
+          del.className = 'doodle-tool'; del.textContent = '이 낙서 삭제';
+          del.addEventListener('click', async () => {
+            if (!confirm('이 낙서를 삭제할까요? 삭제하면 되돌릴 수 없어요.')) return;
+            del.disabled = true;
+            try {
+              const r = await adminDoodleCall({ p_delete: item.id });
+              if (r.error) throw new Error(r.error);
+              doodleAdminItems = r.items;
+              await loadDoodles(); renderGrid();
+              head.textContent = '삭제했어요.';
+            } catch (e) { head.textContent = '삭제하지 못했어요. 다시 시도해주세요.'; del.disabled = false; }
+          });
+          card.appendChild(del);
+        }
+        grid.appendChild(card);
       });
     };
     body.appendChild(grid);
@@ -1737,6 +1761,22 @@ function boot() {
     go.textContent = '그리러 가기';
     go.addEventListener('click', openDoodlePad);
     body.appendChild(go);
+    const manage = document.createElement('button');
+    manage.className = 'doodle-tool';
+    manage.textContent = doodleAdminKey ? '관리자 모드 종료' : '관리자 모드';
+    manage.addEventListener('click', async () => {
+      if (doodleAdminKey) { doodleAdminKey = ''; doodleAdminItems = []; return openDoodle(); }
+      const key = prompt('본인 전용 관리키를 입력해주세요. 기존 관리 주소의 # 뒤에 있는 값입니다.');
+      if (!key) return;
+      manage.disabled = true;
+      try {
+        const r = await doodleCall('dojang_doodle_admin', { p_site: DOJANG.doodle.site, p_key: key.trim() });
+        if (r.error) { head.textContent = '관리키가 맞지 않아요.'; return; }
+        doodleAdminKey = key.trim(); doodleAdminItems = r.items; openDoodle();
+      } catch (e) { head.textContent = '관리자 확인을 할 수 없어요. 다시 시도해주세요.'; }
+      finally { manage.disabled = false; }
+    });
+    body.appendChild(manage);
   }
   function openDoodlePad() {
     openSheet('낙서 그리기');
@@ -1820,15 +1860,21 @@ function boot() {
       try {
         let device = store.get('dojang-doodle-device');
         if (!device) { device = crypto.randomUUID(); store.set('dojang-doodle-device', device); }
-        const r = await doodleCall('dojang_doodle_submit_open', { p_site: DOJANG.doodle.site, p_device: device, p_data: data });
+        const r = doodleAdminKey
+          ? await doodleCall('dojang_doodle_admin_add', { p_site: DOJANG.doodle.site, p_key: doodleAdminKey, p_data: data })
+          : await doodleCall('dojang_doodle_submit_open', { p_site: DOJANG.doodle.site, p_device: device, p_data: data });
         if (r.id) {
           doodleLoadVersion++;
           doodlePublic = [{ id: r.id, data }, ...doodlePublic.filter(item => item.id !== r.id)].slice(0, 12);
           refreshDoodleWall();
           thwack(420, .25);
+          if (doodleAdminKey) {
+            // 저장 성공 뒤 목록 조회가 실패해도 같은 그림을 재전송하지 않는다.
+            doodleAdminItems = [{ id: r.id, data }, ...doodleAdminItems];
+          }
           return openDoodle('벽에 걸었어요!');
         }
-        msg.textContent = { device: '오늘은 이미 한 장 그렸어요. 내일 또 그려주세요.', full: '오늘 낙서장이 가득 찼어요. 내일 다시 와주세요.' }[r.error] || '보내지 못했어요. 다시 해주세요.';
+        msg.textContent = { capacity: '60장이 가득 찼어요. 기존 낙서를 삭제한 뒤 추가해주세요.', key: '관리키를 다시 확인해주세요.', device: '오늘은 이미 한 장 그렸어요. 내일 또 그려주세요.', full: '오늘 낙서장이 가득 찼어요. 내일 다시 와주세요.' }[r.error] || '보내지 못했어요. 다시 해주세요.';
       } catch (e) {
         msg.textContent = '지금은 보낼 수 없어요. 잠시 뒤에 다시 해주세요.';
       }
