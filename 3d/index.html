@@ -225,7 +225,7 @@ th { font-size: 13px; color: var(--ink-soft); }
       <a class="home-link" href="https://mastertkd-sandong.kr/">홈페이지</a>
     </div>
     <div class="visits" id="visits" hidden></div>
-    <small class="visits release-version">버전 2026.11.12.2</small>
+    <small class="visits release-version">버전 2026.11.12.3</small>
   </div>
 </div>
 <div class="hint" id="hint">문 쪽 바닥을 누르면 걸어 들어가요. 끌면 시점이 돌아가요.</div>
@@ -1099,7 +1099,7 @@ function boot() {
   const cubeMaterials = [0xe43c32,0xf68b25,0xffffff,0xf5d328,0x27a34b,0x245de0].map(c=>lam(c));
   [-1,0,1].forEach(x=>[-1,0,1].forEach(y=>[-1,0,1].forEach(z=>{
     const m=new THREE.Mesh(new THREE.BoxGeometry(.10,.10,.10),cubeMaterials);
-    m.position.set(7.5+x*.11,.45+y*.11,21.25+z*.11); cubeGroup.add(m);
+    m.position.set(2.82+x*.11,.91+y*.11,20.95+z*.11); cubeGroup.add(m);
   })));
   // 낙서장: 12칸을 한 장의 그림으로 만들어 오래된 폰에서도 가볍게 한다
   const doodleGroup = new THREE.Group();
@@ -1295,8 +1295,8 @@ function boot() {
       label: pinLabel('쿠션 터치', .5, 2.7, 8, '#d9761f'), open: () => openMini('pads') },
     { name: '컵 쌓기', noChip: true, action: '컵 쌓기 시작', stand: [6.2, 20.3], objs: [cupGroup],
       label: pinLabel('컵 쌓기', 6.55, 2.2, 21.3, '#2c8a43'), open: () => openMini('cups') },
-    { name: '3D 큐브', noChip: true, action: '큐브 맞추기', stand: [7.4,20.3], objs: [cubeGroup],
-      label: pinLabel('3D 큐브',7.5,1.8,21.25,'#6a3fa8'), open:()=>openMini('cube') },
+    { name: '3D 큐브', noChip: true, action: '큐브 맞추기', stand: [4.8,20.9], objs: [cubeGroup],
+      label: pinLabel('3D 큐브',3.25,1.3,20.95,'#6a3fa8'), open:()=>openMini('cube') },
     { name: '낙서장', noChip: true, action: '낙서장 보기', stand: [4.9, 19.7], objs: [doodleGroup],
       label: pinLabel('낙서장', 5.55, 2.15, 18.9, '#b92a2c'), open: () => openDoodle() },
     { name: '탈의실 정리', noChip: true, action: '탈의실 정리 시작', stand: [1.75, 19.2], objs: [tidyGroup],
