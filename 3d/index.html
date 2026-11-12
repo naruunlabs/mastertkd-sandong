@@ -225,7 +225,7 @@ th { font-size: 13px; color: var(--ink-soft); }
       <a class="home-link" href="https://mastertkd-sandong.kr/">홈페이지</a>
     </div>
     <div class="visits" id="visits" hidden></div>
-    <small class="visits release-version">버전 2026.11.12.3</small>
+    <small class="visits release-version">버전 2026.11.12.4</small>
   </div>
 </div>
 <div class="hint" id="hint">문 쪽 바닥을 누르면 걸어 들어가요. 끌면 시점이 돌아가요.</div>
@@ -1097,9 +1097,9 @@ function boot() {
   solid(6.15, 21.1, 7, 21.5);
   const cubeGroup = new THREE.Group(); scene.add(cubeGroup);
   const cubeMaterials = [0xe43c32,0xf68b25,0xffffff,0xf5d328,0x27a34b,0x245de0].map(c=>lam(c));
-  [-1,0,1].forEach(x=>[-1,0,1].forEach(y=>[-1,0,1].forEach(z=>{
-    const m=new THREE.Mesh(new THREE.BoxGeometry(.10,.10,.10),cubeMaterials);
-    m.position.set(2.82+x*.11,.91+y*.11,20.95+z*.11); cubeGroup.add(m);
+  [-1,1].forEach(x=>[-1,1].forEach(y=>[-1,1].forEach(z=>{
+    const m=new THREE.Mesh(new THREE.BoxGeometry(.16,.16,.16),cubeMaterials);
+    m.position.set(2.82+x*.09,.91+y*.09,20.95+z*.09); cubeGroup.add(m);
   })));
   // 낙서장: 12칸을 한 장의 그림으로 만들어 오래된 폰에서도 가볍게 한다
   const doodleGroup = new THREE.Group();
@@ -2561,7 +2561,7 @@ function boot() {
     { name:'위', axis:1, sign:1, color:'#fafafa' }, { name:'아래', axis:1, sign:-1, color:'#f5d328' }
   ];
   function cubeSolvedState() {
-    return CUBE_FACES.flatMap(f => [-2,0,2].flatMap(a => [-2,0,2].map(b => {
+    return CUBE_FACES.flatMap(f => [-1.5,1.5].flatMap(a => [-1.5,1.5].map(b => {
       const p=[0,0,0], n=[0,0,0], axes=[0,1,2].filter(i=>i!==f.axis);
       p[f.axis]=3*f.sign; n[f.axis]=f.sign; p[axes[0]]=a; p[axes[1]]=b;
       return {p,n,color:f.color};
@@ -2619,11 +2619,11 @@ function boot() {
       polys.push({pts,color,z:view.depth(center),sticker});
     };
     // Black cubies expose their inner sides while a layer is turning.
-    [-2/3,0,2/3].forEach(x=>[-2/3,0,2/3].forEach(y=>[-2/3,0,2/3].forEach(z=>{
-      const center=[x,y,z],selected=turn&&Math.round(center[turn.axis]*1.5)===turn.layer;
-      CUBE_FACES.forEach(f=>{const p=center.slice(),n=[0,0,0];p[f.axis]+=f.sign*.323;n[f.axis]=f.sign;quad(p,n,.323,'#111824',selected,null);});
+    [-.5,.5].forEach(x=>[-.5,.5].forEach(y=>[-.5,.5].forEach(z=>{
+      const center=[x,y,z],selected=turn&&Math.sign(center[turn.axis])===turn.layer;
+      CUBE_FACES.forEach(f=>{const p=center.slice(),n=[0,0,0];p[f.axis]+=f.sign*.49;n[f.axis]=f.sign;quad(p,n,.49,'#111824',selected,null);});
     })));
-    s.stickers.forEach(st=>quad(st.p.map(v=>v/3),st.n,.298,st.color,turn&&Math.sign(st.p[turn.axis])===turn.layer,st));
+    s.stickers.forEach(st=>quad(st.p.map(v=>v/3),st.n,.465,st.color,turn&&Math.sign(st.p[turn.axis])===turn.layer,st));
     polys.sort((a,b)=>a.z-b.z);s.hits=[];
     polys.forEach(poly=>{
       g.beginPath();poly.pts.forEach(([x,y],i)=>i?g.lineTo(x,y):g.moveTo(x,y));g.closePath();
@@ -2657,7 +2657,7 @@ function boot() {
     const body=$('mBody');body.replaceChildren();body.style.justifyContent='flex-start';body.style.gap='10px';
     const canvas=document.createElement('canvas');s.canvas=canvas;
     canvas.style.cssText='display:block;width:100%;height:min(52dvh,420px);min-height:150px;flex:none;background:radial-gradient(ellipse,#34425d,#192337);touch-action:none;cursor:grab;border-radius:16px;';
-    canvas.setAttribute('aria-label','3×3 큐브. 색 칸을 밀면 해당 줄이 돌아가고 빈 공간을 밀면 큐브 전체가 돌아갑니다.');
+    canvas.setAttribute('aria-label','2×2 큐브. 색 칸을 밀면 해당 줄이 돌아가고 빈 공간을 밀면 큐브 전체가 돌아갑니다.');
     canvas.setAttribute('role','group');body.appendChild(canvas);
     const controls=document.createElement('div');controls.style.cssText='display:flex;gap:8px;flex-wrap:wrap;justify-content:center;';body.appendChild(controls);
     const button=(label,fn)=>{const b=document.createElement('button');b.className='btn-sub';b.textContent=label;b.addEventListener('click',()=>{if(mini&&mini.running&&mini.s===s)fn(b);});controls.appendChild(b);return b;};
@@ -2705,7 +2705,7 @@ function boot() {
   const MINI = {
     cube: {
       dom:true, title:'3D 큐브', unit:'점', labels:['움직인 횟수','목표'], foot:'색 칸을 밀어서 한 줄씩 돌려보세요',
-      help:'실제 큐브처럼 3×3 큐브의 색 칸을 손가락으로 밀어 돌려보세요. 빈 공간을 밀면 큐브 전체를 돌려 뒤쪽도 볼 수 있어요. 5번 섞인 큐브의 여섯 면을 맞춰보세요. 보너스 게임이라 도장 조건에는 포함되지 않아요.',
+      help:'실제 큐브처럼 2×2 큐브의 색 칸을 손가락으로 밀어 돌려보세요. 빈 공간을 밀면 큐브 전체를 돌려 뒤쪽도 볼 수 있어요. 5번 섞인 큐브의 여섯 면을 맞춰보세요. 보너스 게임이라 도장 조건에는 포함되지 않아요.',
       init() {
         const s={stickers:cubeSolvedState(),moves:0,history:[],yaw:.65,pitch:.5,dirty:true,turn:null,gesture:null,orbitOnly:false};
         do { s.stickers=cubeSolvedState(); for(let i=0,last=-1;i<5;i++) { let face;do{face=Math.floor(Math.random()*6);}while(face===last);last=face;cubeTurn(s.stickers,CUBE_FACES[face],Math.random()<.5?-1:1); } }while(cubeIsSolved(s.stickers));
