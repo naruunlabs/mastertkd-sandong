@@ -224,7 +224,7 @@ th { font-size: 13px; color: var(--ink-soft); }
       <a class="home-link" href="https://mastertkd-sandong.kr/">홈페이지</a>
     </div>
     <div class="visits" id="visits" hidden></div>
-    <small class="visits release-version">버전 2026.11.13.4</small>
+    <small class="visits release-version">버전 2026.11.13.5</small>
   </div>
 </div>
 <div class="hint" id="hint">문 쪽 바닥을 누르면 걸어 들어가요. 끌면 시점이 돌아가요.</div>
@@ -332,6 +332,7 @@ const DOJANG = {
     colors: ['#1a1a1f', '#d6322a', '#1d4fc2', '#f0c419', '#2c8a43', '#6a3fa8'], colorNames: ['검정', '빨강', '파랑', '노랑', '초록', '보라']
   },
   // 게임 목록과 오늘의 도전이 함께 사용하는 활동 목록.
+  medalNeed: 10,
   stamps: [
     { id: 'mit', name: '발차기', room: '1관', need: 12, unit: '점' },
     { id: 'soccer', name: '축구', room: '1관', need: 300, unit: '점' },
@@ -396,7 +397,15 @@ function dailyBest(id, day = challengeDay()) {
 }
 function stampBest(s) { return dailyBest(s.id); }
 function stampDone(s) { return stampBest(s) >= s.need; }
+function awardDailyMedal(day = challengeDay()) {
+  const key = MEDAL_PREFIX + day;
+  if (DOJANG.stamps.filter(s => dailyBest(s.id, day) >= s.need).length < DOJANG.medalNeed || challengeGet(key) === '1') return false;
+  challengeSet(key, '1');
+  return true;
+}
 function medalCount() {
+  // 기준 변경 전에 오늘 이미 10개를 달성한 경우에도 다시 플레이할 필요가 없다.
+  awardDailyMedal();
   // 기존에 이미 받은 금메달 한 개도 유지한다.
   if (store.get('dojang-gold') === '1') challengeSet(MEDAL_PREFIX + 'legacy', '1');
   const keys = new Set(challengeMemory.keys());
@@ -408,10 +417,8 @@ function recordDailyScore(id, score) {
   const day = challengeDay(), previous = dailyBest(id, day);
   if (!Number.isFinite(score) || score < 0 || !stampOf(id)) return { previous, awarded: false };
   challengeSet(CHALLENGE_PREFIX + day + '-' + (id === 'mit' ? 'kick-v2' : id), Math.max(previous, score));
-  const medalKey = MEDAL_PREFIX + day;
-  const awarded = DOJANG.stamps.every(s => dailyBest(s.id, day) >= s.need) && challengeGet(medalKey) !== '1';
-  // 날짜별 획득 표시라 재접속하거나 여러 탭에서 달성해도 하루 한 개다.
-  if (awarded) challengeSet(medalKey, '1');
+  // 서로 다른 활동 10개, 종류 제한 없이 하루 한 개까지 지급한다.
+  const awarded = awardDailyMedal(day);
   return { previous, awarded };
 }
 function stampGoal(id) {
@@ -1726,7 +1733,7 @@ function boot() {
     head.textContent = `오늘 도장 ${count}/${list.length} · 누적 금메달 ${medals}개`;
     body.appendChild(head);
     const guide = document.createElement('p');
-    guide.textContent = '매일 새 도전! 모두 모으면 금메달 1개 · 밤 12시 초기화';
+    guide.textContent = `종류 상관없이 ${list.length}개 중 ${DOJANG.medalNeed}개 달성하면 금메달 1개 · 밤 12시 초기화`;
     body.appendChild(guide);
     const grid = document.createElement('div');
     grid.className = 'stamps';
