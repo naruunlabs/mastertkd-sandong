@@ -224,7 +224,7 @@ th { font-size: 13px; color: var(--ink-soft); }
       <a class="home-link" href="https://mastertkd-sandong.kr/">홈페이지</a>
     </div>
     <div class="visits" id="visits" hidden></div>
-    <small class="visits release-version">버전 2026.11.13.1</small>
+    <small class="visits release-version">버전 2026.11.13.2</small>
   </div>
 </div>
 <div class="hint" id="hint">문 쪽 바닥을 누르면 걸어 들어가요. 끌면 시점이 돌아가요.</div>
@@ -1401,7 +1401,7 @@ function boot() {
     for (let k = 1; k <= n; k++) if (blocked(ax + (bx - ax) * k / n, az + (bz - az) * k / n)) return false;
     return true;
   }
-  const cellOf = (x, z) => Math.floor(z / CELL) * GRID + Math.floor(x / CELL);
+  function cellOf(x, z) { return Math.floor(z / CELL) * GRID + Math.floor(x / CELL); }
   function nearestFree(start) {
     if (freeCell[start]) return start;
     const si = start % GRID, sj = Math.floor(start / GRID);
