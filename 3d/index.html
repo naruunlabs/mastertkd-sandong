@@ -210,8 +210,7 @@ th { font-size: 13px; color: var(--ink-soft); }
 .fail { position: fixed; inset: 0; z-index: 9; display: flex; align-items: center; justify-content: center; text-align: center; padding-block: 24px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); background: var(--ink); line-height: 1.7; }
 @media (prefers-reduced-motion: reduce) { .mit.hit { animation: none; } .hint { transition: none; } }
 .duel-canvas { display:block; flex:1; width:100%; min-height:0; }
-#game .mits { flex:none; height:84px; gap:20px; }
-#game .mit { width:76px; font-size:22px; }
+#game .game-call { font-size:clamp(20px,5vw,32px); height:50px; }
 </style>
 
 <canvas id="scene" aria-label="평면도대로 만든 태권도장 3D 공간. 바닥을 누르면 캐릭터가 걸어갑니다."></canvas>
@@ -225,7 +224,7 @@ th { font-size: 13px; color: var(--ink-soft); }
       <a class="home-link" href="https://mastertkd-sandong.kr/">홈페이지</a>
     </div>
     <div class="visits" id="visits" hidden></div>
-    <small class="visits release-version">버전 2026.11.12.4</small>
+    <small class="visits release-version">버전 2026.11.13.1</small>
   </div>
 </div>
 <div class="hint" id="hint">문 쪽 바닥을 누르면 걸어 들어가요. 끌면 시점이 돌아가요.</div>
@@ -245,20 +244,16 @@ th { font-size: 13px; color: var(--ink-soft); }
   </section>
 </div>
 
-<div class="game" id="game" role="dialog" aria-label="겨루기 게임" hidden>
+<div class="game" id="game" role="dialog" aria-label="발차기 게임" hidden>
   <div class="game-top">
     <div class="game-stats">
-      <div><b id="gScore">0</b><span id="gLabelScore">내 점수</span></div>
-      <div><b id="gCombo">0</b><span id="gLabelCombo">상대 점수</span></div>
-      <div><b id="gLeft">20</b><span id="gLabelLeft">남은 시간</span></div>
+      <div><b id="gScore">0</b><span id="gLabelScore">성공</span></div>
+      <div><b id="gCombo">0</b><span id="gLabelCombo">연속 성공</span></div>
+      <div><b id="gLeft">15</b><span id="gLabelLeft">남은 시간</span></div>
     </div>
     <button class="close" id="gClose">그만하기</button>
   </div>
   <div class="game-call" id="gCall" aria-live="polite"></div>
-  <div class="mits">
-    <button class="mit cheong" id="mitL" aria-label="공격">공격<span class="ring"></span></button>
-    <button class="mit hong" id="mitR" aria-label="방어">방어<span class="ring"></span></button>
-  </div>
   <div class="game-foot" id="gFoot"></div>
   <div class="game-card" id="gCard"></div>
 </div>
@@ -337,7 +332,7 @@ const DOJANG = {
     colors: ['#1a1a1f', '#d6322a', '#1d4fc2', '#f0c419', '#2c8a43', '#6a3fa8'], colorNames: ['검정', '빨강', '파랑', '노랑', '초록', '보라']
   },
   stamps: [
-    { id: 'mit', name: '겨루기', need: 8, unit: '점' },
+    { id: 'mit', name: '발차기', need: 12, unit: '점' },
     { id: 'soccer', name: '축구', need: 300, unit: '점' },
     { id: 'basket', name: '농구', need: 300, unit: '점' },
     { id: 'rope', name: '줄넘기', need: 16, unit: '개' },
@@ -394,7 +389,7 @@ function challengeSet(key, value) {
   catch (e) { challengeMemory.set(key, String(value)); }
 }
 function dailyBest(id, day = challengeDay()) {
-  return Math.max(0, Number(challengeGet(CHALLENGE_PREFIX + day + '-' + (id === 'mit' ? 'sparring-v1' : id))) || 0);
+  return Math.max(0, Number(challengeGet(CHALLENGE_PREFIX + day + '-' + (id === 'mit' ? 'kick-v2' : id))) || 0);
 }
 function stampBest(s) { return dailyBest(s.id); }
 function stampDone(s) { return stampBest(s) >= s.need; }
@@ -409,7 +404,7 @@ function goldEarned() { return medalCount() > 0; }
 function recordDailyScore(id, score) {
   const day = challengeDay(), previous = dailyBest(id, day);
   if (!Number.isFinite(score) || score < 0 || !stampOf(id)) return { previous, awarded: false };
-  challengeSet(CHALLENGE_PREFIX + day + '-' + (id === 'mit' ? 'sparring-v1' : id), Math.max(previous, score));
+  challengeSet(CHALLENGE_PREFIX + day + '-' + (id === 'mit' ? 'kick-v2' : id), Math.max(previous, score));
   const medalKey = MEDAL_PREFIX + day;
   const awarded = DOJANG.stamps.every(s => dailyBest(s.id, day) >= s.need) && challengeGet(medalKey) !== '1';
   // 날짜별 획득 표시라 재접속하거나 여러 탭에서 달성해도 하루 한 개다.
@@ -878,7 +873,7 @@ function boot() {
     goalGroup.add(b);
   });
   solid(7.5, 1.9, 9.9, 2.2);
-  // 마스터 더미 (겨루기 자리)
+  // 마스터 더미 (발차기 자리)
   const dummy = new THREE.Group();
   scene.add(dummy);
   cyl(.42, .28, 9.75, 0, 12.75, 0x1a1b20, dummy);
@@ -1279,8 +1274,8 @@ function boot() {
       label: pinLabel('안내문', 12.4, 3.2, 18.8, '#161f38'), open: () => openBoard(0) },
     { name: '상담', noChip: false, action: '상담하기', stand: [10.6, 19.2], objs: [officeGroup],
       label: pinLabel('상담', 11.5, 2.5, 20.6, '#b92a2c'), open: () => openBoard(DOJANG.board.findIndex(t => t.consult)) },
-    { name: '겨루기', noChip: true, action: '겨루기 시작', stand: [9.75, 11.7], objs: [dummy],
-      label: pinLabel('겨루기', 9.75, 3.4, 12.75, '#b92a2c'), open: openGameIntro },
+    { name: '발차기', noChip: true, action: '발차기 시작', stand: [9.75, 11.7], objs: [dummy],
+      label: pinLabel('발차기', 9.75, 3.4, 12.75, '#b92a2c'), open: openGameIntro },
     { name: '축구', noChip: true, action: '축구 시작', stand: [8.7, 3.3], objs: [goalGroup],
       label: pinLabel('축구', 8.7, 2.7, 2.1, '#2c8a43'), open: () => openShot('soccer') },
     { name: '농구', noChip: true, action: '농구 시작', stand: [19.9, 11.9], objs: [hoopGroup],
@@ -1320,7 +1315,7 @@ function boot() {
     addPlace(n, () => walkTo(x, z));
   });
   if (document.fonts && document.fonts.load) {
-    Promise.all(['110px "Black Han Sans"'].map(f => document.fonts.load(f, '수련장 게시판 겨루기 안내문')))
+    Promise.all(['110px "Black Han Sans"'].map(f => document.fonts.load(f, '수련장 게시판 발차기 안내문')))
       .then(() => redraws.forEach(fn => fn())).catch(() => {});
   }
   const tapRing = new THREE.Mesh(new THREE.RingGeometry(.2, .3, 24),
@@ -1349,6 +1344,58 @@ function boot() {
     const inside = z < 14 || x < 14 || (x < 19 && z < 18.7);
     freeCell[j * GRID + i] = inside && !blocked(x, z) ? 1 : 0;
   }
+  // Only place treasures on cells connected to the entrance, never inside furniture.
+  function treasureReachable(free,side,start) {
+    const visited=new Uint8Array(free.length),queue=[];
+    if(start<0||start>=free.length||!free[start])return visited;
+    visited[start]=1;queue.push(start);
+    for(let i=0;i<queue.length;i++){
+      const cell=queue[i],x=cell%side,y=Math.floor(cell/side);
+      [[1,0],[-1,0],[0,1],[0,-1]].forEach(([dx,dy])=>{const nx=x+dx,ny=y+dy,n=ny*side+nx;if(nx>=0&&ny>=0&&nx<side&&ny<side&&free[n]&&!visited[n]){visited[n]=1;queue.push(n);}});
+    }
+    return visited;
+  }
+  const treasureNames=['태권도 띠','금메달','발차기 미트','태권도화','우승 트로피'];
+  const treasureIcons=['🥋','🥇','🥊','👟','🏆'];
+  const treasures=[];
+  const treasureButton=document.createElement('button');treasureButton.addEventListener('click',()=>openTreasures());$('places').appendChild(treasureButton);
+  function treasureCount(){return treasures.filter(t=>t.found).length;}
+  function openTreasures(note=''){
+    openSheet('도장 보물찾기');const body=$('sheetBody'),intro=document.createElement('p');
+    intro.textContent=note||(treasureCount()===treasures.length?'보물을 모두 찾았어요!':'도장 안에 숨은 보물 5개를 찾아 가까이 가서 눌러보세요. 시간제한은 없어요.');body.appendChild(intro);
+    const count=document.createElement('p');count.className='stamp-head';count.textContent=`찾은 보물 ${treasureCount()}/${treasures.length}`;body.appendChild(count);
+    treasures.forEach(t=>{const row=document.createElement('p');row.textContent=`${t.found?'✅':'⬜'} ${t.icon} ${t.name}`;body.appendChild(row);});
+    const back=document.createElement('button');back.className='btn-main';back.textContent=treasureCount()===treasures.length?'도장으로 돌아가기':'찾으러 가기';back.addEventListener('click',closeSheet);body.appendChild(back);
+  }
+  function collectTreasure(t){
+    if(t.found)return false;
+    if(Math.hypot(player.x-t.x,player.z-t.z)>1.3){goToHotspot(t.spot);return false;}
+    t.found=true;t.sprite.visible=false;t.spot.enabled=false;
+    const clicked=clickable.indexOf(t.sprite);if(clicked>=0)clickable.splice(clicked,1);
+    treasureButton.textContent=`보물찾기 ${treasureCount()}/${treasures.length}`;thwack(550,.25);
+    openTreasures(treasureCount()===treasures.length?'보물 5개를 모두 찾았어요! 🎉':`${t.name} 발견!`);return true;
+  }
+  const treasureVisited=treasureReachable(freeCell,GRID,nearestFree(cellOf(player.x,player.z)));
+  ['gwan1','gwan2','rest','office','hall'].forEach((room,index)=>{
+    const pool=[];
+    for(let cell=0;cell<freeCell.length;cell++)if(treasureVisited[cell]){
+      const x=(cell%GRID+.5)*CELL,z=(Math.floor(cell/GRID)+.5)*CELL;
+      if(roomAt(x,z)===room)pool.push({x,z});
+    }
+    const quiet=pool.filter(p=>hotspots.every(h=>Math.hypot(p.x-h.stand[0],p.z-h.stand[1])>1.6));
+    const choices=quiet.length?quiet:pool;if(!choices.length)return;
+    const {x,z}=choices[Math.floor(Math.random()*choices.length)];
+    const tex=canvasTex(128,128,(g,w,h)=>{
+      g.fillStyle='rgba(255,224,110,.9)';g.beginPath();g.arc(w/2,h/2,w*.43,0,Math.PI*2);g.fill();
+      g.strokeStyle='#fff6cc';g.lineWidth=5;g.stroke();g.textAlign='center';g.textBaseline='middle';g.font='62px "Segoe UI Emoji",sans-serif';g.fillText(treasureIcons[index],w/2,h/2+2);
+    });
+    const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthTest:true}));sprite.position.set(x,.65,z);sprite.scale.set(.65,.65,1);scene.add(sprite);
+    const t={name:treasureNames[index],icon:treasureIcons[index],x,z,sprite,found:false};
+    const spot={name:t.name,stand:[x,z],action:'보물 발견하기',enabled:true,open:()=>collectTreasure(t)};
+    t.spot=spot;sprite.userData.hotspot=spot;clickable.push(sprite);hotspots.push(spot);treasures.push(t);
+  });
+  treasureButton.textContent=`보물찾기 0/${treasures.length}`;
+
   function clearLine(ax, az, bx, bz) {
     const d = Math.hypot(bx - ax, bz - az), n = Math.ceil(d / .1);
     for (let k = 1; k <= n; k++) if (blocked(ax + (bx - ax) * k / n, az + (bz - az) * k / n)) return false;
@@ -1947,8 +1994,7 @@ function boot() {
     show();
   }
 
-  // ---------- 겨루기 ----------
-  const mits = { L: $('mitL'), R: $('mitR') };
+  // ---------- 발차기 ----------
   let audio = null, game = null, gameRaf = 0;
   function initAudio() {
     if (audio) return;
@@ -1968,94 +2014,89 @@ function boot() {
   function setCard(html) { const c = $('gCard'); c.innerHTML = html; c.hidden = false; }
   const duelCanvas = document.createElement('canvas');
   duelCanvas.className = 'duel-canvas';
-  duelCanvas.setAttribute('aria-label', '청 선수와 홍 선수의 겨루기');
-  $('game').insertBefore(duelCanvas, $('game').querySelector('.mits'));
+  duelCanvas.style.touchAction = 'none';
+  duelCanvas.setAttribute('aria-label', '샌드백에서 빛나는 부분을 터치하세요. 키보드에서는 빛나는 번호 1부터 6을 누르세요.');
+  $('game').insertBefore(duelCanvas, $('gFoot'));
   const duelContext = duelCanvas.getContext('2d');
-  const bestScore = () => Number(store.get('dojang-best-sparring-v1')) || 0;
+  const bestScore = () => Number(store.get('dojang-best-kick-v2')) || 0;
+  const KICK_ZONES = [[0,-.36],[-.26,-.12],[.26,-.12],[0,-.08],[-.14,.16],[.14,.16]];
+  function kickLayout(W,H) {
+    const h=Math.min(H*.88,W*1.05),cx=W/2,cy=H*.49;
+    return {h,cx,cy,r:h*.085,zones:KICK_ZONES.map(([x,y])=>[cx+x*h,cy+y*h])};
+  }
   function openGameIntro() {
     keys.clear(); $('game').hidden = false;
-    $('gLabelScore').textContent = '내 점수'; $('gLabelCombo').textContent = '상대 점수'; $('gLabelLeft').textContent = '남은 시간';
-    setCard(`<h2>겨루기</h2><p>컴퓨터 상대와 20초 대결! 공격은 2점, 상대의 공격 예고가 뜨면 방어하세요. 막은 직후 반격은 3점이에요. 상대가 방어 중이면 공격이 막혀요.</p>
-      <p>공격: 왼쪽 버튼 / ← · 방어: 오른쪽 버튼 / →</p>
-      ${bestScore() ? `<p>내 최고 점수 ${bestScore()}점</p>` : ''}${stampGoal('mit')}
-      <div class="row"><button class="btn-main" id="gStart">대결 시작</button><button class="btn-sub" id="gBack">도장으로 돌아가기</button></div>`);
-    $('gStart').addEventListener('click', startGame); $('gBack').addEventListener('click', closeGame); $('gStart').focus();
+    $('gLabelScore').textContent = '성공'; $('gLabelCombo').textContent = '연속 성공'; $('gLabelLeft').textContent = '남은 시간';
+    setCard(`<h2>발차기</h2><p>샌드백에서 노랗게 빛나는 부분을 터치하세요!</p><p>15초 동안 빠르게 터치! 놓쳐도 다음 불빛이 나와요.</p>
+      ${bestScore()?`<p>내 최고 기록 ${bestScore()}점</p>`:''}${stampGoal('mit')}
+      <div class="row"><button class="btn-main" id="gStart">시작</button><button class="btn-sub" id="gBack">도장으로 돌아가기</button></div>`);
+    $('gStart').addEventListener('click',startGame);$('gBack').addEventListener('click',closeGame);$('gStart').focus();
   }
-  function closeGame() { cancelAnimationFrame(gameRaf); game = null; $('game').hidden = true; }
-  $('gClose').addEventListener('click', closeGame);
-  function startGame() {
-    initAudio(); if (audio && audio.state === 'suspended') audio.resume();
-    $('gCard').hidden = true;
-    game = { time: 0, last: performance.now(), score: 0, opponent: 0, nextAttack: 1.5, warned: false, guardUntil: 0, guardReady: 0, kickReady: 0, counterUntil: 0, kickUntil: 0, enemyKickUntil: 0, messageUntil: 0 };
-    setCall('준비!', ''); $('gFoot').textContent = '공격 예고 → 방어 → 반격!';
-    gameRaf = requestAnimationFrame(gameLoop);
+  function closeGame(){cancelAnimationFrame(gameRaf);game=null;$('game').hidden=true;}
+  $('gClose').addEventListener('click',closeGame);
+  function kickNext(s) {
+    const previous=s.target;
+    // Five alternatives, chosen without rerolling or repeating the same target.
+    s.target=(previous+1+Math.floor(Math.random()*(KICK_ZONES.length-1)))%KICK_ZONES.length;
+    s.life=Math.max(.48,1.05-s.time*.035);
   }
-  function enemyGuarding() { return game && Math.floor(game.time / .85) % 3 === 1; }
-  function duelMessage(text, good = false) { setCall(text, good ? 'perfect' : ''); game.messageUntil = game.time + .55; }
-  function judge(action) {
-    if (!game) return;
-    const t = game.time;
-    if (action === 'R') {
-      if (t < game.guardReady) return;
-      game.guardUntil = t + .48; game.guardReady = t + .7;
-      duelMessage('방어!');
-    } else {
-      if (t < game.kickReady || t < game.guardUntil) return;
-      game.kickReady = t + .6; game.kickUntil = t + .22;
-      if (t < game.counterUntil) { game.score += 3; game.counterUntil = 0; duelMessage('반격! +3점', true); thwack(300, .3); }
-      else if (enemyGuarding()) { duelMessage('상대가 막았어요'); thwack(90, .2); }
-      else { game.score += 2; duelMessage('몸통 공격! +2점', true); thwack(220, .3); }
-    }
+  function updateKickStats(){if(!game)return;$('gScore').textContent=game.score;$('gCombo').textContent=game.combo;$('gLeft').textContent=Math.max(0,Math.ceil(15-game.time));}
+  function startGame(){
+    initAudio();if(audio&&audio.state==='suspended')audio.resume();$('gCard').hidden=true;
+    game={time:0,last:performance.now(),score:0,combo:0,target:0,life:0,flash:-1,flashUntil:0,messageUntil:0};kickNext(game);
+    setCall('노란 불빛을 터치!','');$('gFoot').textContent='빛나는 곳만 터치 · 컴퓨터에서는 빛나는 번호 1~6';
+    updateKickStats();drawDuel();gameRaf=requestAnimationFrame(gameLoop);
   }
-  function gameLoop(now) {
-    if (!game) return;
-    const dt = Math.min(.05, (now - game.last) / 1000); game.last = now; game.time += dt;
-    if (game.time >= 20) return endGame();
-    if (!game.warned && game.time >= game.nextAttack - .65) { game.warned = true; duelMessage('상대 공격 준비! 방어하세요'); game.messageUntil = game.nextAttack; }
-    if (game.time >= game.nextAttack) {
-      game.enemyKickUntil = game.time + .24;
-      if (game.time < game.guardUntil) { game.guardUntil = 0; game.counterUntil = game.time + .75; duelMessage('막았어요! 지금 반격!', true); }
-      else { game.opponent += 2; duelMessage('상대 득점 +2'); }
-      game.nextAttack = game.time + 1.3 + Math.random() * .6; game.warned = false;
-    }
-    if (game.time > game.messageUntil) setCall(enemyGuarding() ? '상대 방어 중' : '공격 기회!', '');
-    $('gScore').textContent = game.score; $('gCombo').textContent = game.opponent; $('gLeft').textContent = Math.ceil(20 - game.time);
-    drawDuel(); gameRaf = requestAnimationFrame(gameLoop);
+  function judge(x,y,W,H){
+    if(!game||game.time>=15)return false;
+    const L=kickLayout(W,H),[tx,ty]=L.zones[game.target];
+    if(Math.hypot(x-tx,y-ty)>L.r*1.35){game.combo=0;updateKickStats();return false;}
+    game.score++;game.combo++;game.flash=game.target;game.flashUntil=game.time+.18;game.messageUntil=game.time+.18;
+    setCall('기합! +1','perfect');thwack(220+Math.min(180,game.combo*12),.25);kickNext(game);updateKickStats();return true;
   }
-  function drawDuel() {
-    const r = duelCanvas.getBoundingClientRect(), dpr = Math.min(devicePixelRatio || 1, 2), W = r.width, H = r.height;
-    if (duelCanvas.width !== Math.round(W*dpr) || duelCanvas.height !== Math.round(H*dpr)) { duelCanvas.width = Math.round(W*dpr); duelCanvas.height = Math.round(H*dpr); }
-    const g = duelContext; g.setTransform(dpr, 0, 0, dpr, 0, 0);
-    g.fillStyle = '#d6e3ee'; g.fillRect(0, 0, W, H); g.fillStyle = '#417cc2'; g.fillRect(0, H*.7, W, H*.3);
-    g.fillStyle = '#cf4545'; g.fillRect(W*.3, H*.7, W*.4, H*.3);
-    const h = Math.min(H*.65, W*.34), feet = H*.83;
-    [0,1].forEach(i => {
-      const x = W*(i ? .7 : .3), kick = game.time < (i ? game.enemyKickUntil : game.kickUntil), guard = i ? enemyGuarding() : game.time < game.guardUntil;
-      drawKid(g, x, feet, h, { swing: kick ? .9 : .08 });
-      g.fillStyle = i ? '#d6322a' : '#1d5dc2'; g.fillRect(x-h*.15, feet-h*.65, h*.3, h*.3);
-      if (kick) { g.strokeStyle = '#fff'; g.lineWidth = h*.1; g.beginPath(); g.moveTo(x,feet-h*.27); g.lineTo(x+(i ? -1 : 1)*h*.55,feet-h*.48); g.stroke(); }
-      if (guard) { g.strokeStyle = '#f0c419'; g.lineWidth = 5; g.beginPath(); g.arc(x,feet-h*.47,h*.36,0,Math.PI*2); g.stroke(); }
-      g.fillStyle = '#161f38'; g.font = 'bold 16px sans-serif'; g.textAlign = 'center'; g.fillText(i ? '상대 · 홍' : '나 · 청', x, Math.max(18,feet-h-12));
+  function stepKick(dt){
+    if(!game)return;
+    game.time+=dt;if(game.time>=15)return endGame();
+    game.life-=dt;if(game.life<=0){game.combo=0;kickNext(game);}
+    if(game.time>game.messageUntil)setCall('빛나는 곳을 터치!','');updateKickStats();
+  }
+  function gameLoop(now){if(!game)return;const dt=Math.min(.05,Math.max(0,(now-game.last)/1000));game.last=now;stepKick(dt);if(!game)return;drawDuel();gameRaf=requestAnimationFrame(gameLoop);}
+  function drawDuel(){
+    if(!game)return;
+    const r=duelCanvas.getBoundingClientRect(),W=r.width,H=r.height,dpr=Math.min(devicePixelRatio||1,2);
+    if(duelCanvas.width!==Math.round(W*dpr)||duelCanvas.height!==Math.round(H*dpr)){duelCanvas.width=Math.round(W*dpr);duelCanvas.height=Math.round(H*dpr);}
+    const g=duelContext,L=kickLayout(W,H),h=L.h,x=L.cx,y=L.cy;
+    g.setTransform(dpr,0,0,dpr,0,0);g.fillStyle='#e6edf2';g.fillRect(0,0,W,H);g.fillStyle='#497bb1';g.fillRect(0,H*.85,W,H*.15);
+    const shake=game.time<game.flashUntil?Math.sin(game.time*130)*h*.009:0;
+    g.save();g.translate(shake,0);
+    g.fillStyle='#1a1b20';g.beginPath();g.ellipse(x,y+h*.46,h*.25,h*.045,0,0,Math.PI*2);g.fill();
+    g.fillStyle='#3c4049';g.fillRect(x-h*.045,y+h*.18,h*.09,h*.28);
+    // Front view of the same freestanding mockup used in the 3D room.
+    g.fillStyle='#292e37';g.beginPath();g.ellipse(x,y-h*.36,h*.105,h*.13,0,0,Math.PI*2);g.fill();
+    g.fillRect(x-h*.20,y-h*.19,h*.40,h*.43);
+    g.fillRect(x-h*.34,y-h*.19,h*.15,h*.20);g.fillRect(x+h*.19,y-h*.19,h*.15,h*.20);
+    g.fillStyle='#bb303b';g.fillRect(x-h*.20,y+h*.055,h*.40,h*.035);
+    g.fillStyle='rgba(255,255,255,.09)';g.fillRect(x-h*.17,y-h*.17,h*.05,h*.37);
+    g.restore();
+    L.zones.forEach(([zx,zy],i)=>{
+      const lit=i===game.target,flash=i===game.flash&&game.time<game.flashUntil;
+      if(lit){g.save();g.shadowColor='#ffc400';g.shadowBlur=22;g.fillStyle='#ffe34d';g.beginPath();g.arc(zx,zy,L.r,0,Math.PI*2);g.fill();g.restore();
+        g.strokeStyle='#fff5bd';g.lineWidth=3;g.beginPath();g.arc(zx,zy,L.r*(1.2+.07*Math.sin(game.time*14)),0,Math.PI*2);g.stroke();
+      }else{g.fillStyle=flash?'#fff':'#424b59';g.beginPath();g.arc(zx,zy,L.r*.9,0,Math.PI*2);g.fill();}
+      g.fillStyle=lit?'#282313':'#bec7d5';g.font=`bold ${Math.max(12,L.r)}px sans-serif`;g.textAlign='center';g.textBaseline='middle';g.fillText(String(i+1),zx,zy);
     });
   }
-  function setCall(text, cls) { const c = $('gCall'); c.textContent = text; c.className = 'game-call ' + cls; }
-  function endGame() {
-    const score = game.score, opponent = game.opponent, best = bestScore();
-    if (score > best) store.set('dojang-best-sparring-v1', score);
-    const earned = BELTS.reduce((best,b,i)=>Math.min(1,score/36)>=b.min?i:best,0);
-    const previous = Math.max(0,BELTS.findIndex(b=>b.name===store.get('dojang-belt')));
-    if(earned>previous) { store.set('dojang-belt',BELTS[earned].name); me.beltMat.color.setHex(BELTS[earned].color); }
-    game = null;
-    setCard(`<h2>${score > opponent ? '승리!' : score === opponent ? '무승부!' : '다시 도전!'}</h2><p>나 ${score} : ${opponent} 상대 · 20초 겨루기</p>${stampNews('mit', score)}
-      <div class="row"><button class="btn-main" id="gAgain">다시 겨루기</button><button class="btn-sub" id="gBack">도장으로 돌아가기</button></div>`);
-    $('gAgain').addEventListener('click', startGame); $('gBack').addEventListener('click', closeGame); $('gAgain').focus();
+  function setCall(text,cls){const c=$('gCall');c.textContent=text;c.className='game-call '+cls;}
+  function endGame(){
+    const score=game.score,best=bestScore();if(score>best)store.set('dojang-best-kick-v2',score);
+    const earned=BELTS.reduce((best,b,i)=>Math.min(1,score/28)>=b.min?i:best,0),previous=Math.max(0,BELTS.findIndex(b=>b.name===store.get('dojang-belt')));
+    if(earned>previous){store.set('dojang-belt',BELTS[earned].name);me.beltMat.color.setHex(BELTS[earned].color);}
+    game=null;
+    setCard(`<h2>발차기 ${score}점!</h2><p>15초 동안 ${score}번 성공했어요.</p>${stampNews('mit',score)}<div class="row"><button class="btn-main" id="gAgain">다시 하기</button><button class="btn-sub" id="gBack">도장으로 돌아가기</button></div>`);
+    $('gAgain').addEventListener('click',startGame);$('gBack').addEventListener('click',closeGame);$('gAgain').focus();
   }
-  mits.L.addEventListener('pointerdown', e => { e.preventDefault(); judge('L'); });
-  mits.R.addEventListener('pointerdown', e => { e.preventDefault(); judge('R'); });
-  function gameKey(e) {
-    if (!game) return;
-    if (['ArrowLeft','KeyF','KeyA','ArrowRight','KeyJ','KeyL'].includes(e.code)) { e.preventDefault(); if (!e.repeat) judge(['ArrowLeft','KeyF','KeyA'].includes(e.code) ? 'L' : 'R'); }
-  }
+  duelCanvas.addEventListener('pointerdown',e=>{if(!game||!e.isPrimary||e.button!==0)return;e.preventDefault();const r=duelCanvas.getBoundingClientRect();judge(e.clientX-r.left,e.clientY-r.top,r.width,r.height);});
+  function gameKey(e){if(!game||e.repeat||!/^[1-6]$/.test(e.key))return;e.preventDefault();const r=duelCanvas.getBoundingClientRect(),L=kickLayout(r.width,r.height);judge(...L.zones[Number(e.key)-1],r.width,r.height);}
 
 
   // ---------- 축구·농구 ----------
@@ -3443,7 +3484,8 @@ function boot() {
   function openGameMenu() {
     openSheet('게임');
     const body = $('sheetBody');
-    [['1관', ['겨루기', '축구', '농구', '줄넘기', '품새 퀴즈']], ['2관', ['매트 달리기', '쿠션 벽 터치']], ['휴게실', ['컵 쌓기', '3D 큐브', '낙서장']], ['탈의실', ['탈의실 정리', '도복 개기']]].forEach(([room, names]) => {
+    const hunt=document.createElement('button');hunt.className='btn-sub';hunt.textContent='도장 보물찾기 '+treasureCount()+'/'+treasures.length;hunt.addEventListener('click',()=>openTreasures());body.appendChild(hunt);
+    [['1관', ['발차기', '축구', '농구', '줄넘기', '품새 퀴즈']], ['2관', ['매트 달리기', '쿠션 벽 터치']], ['휴게실', ['컵 쌓기', '3D 큐브', '낙서장']], ['탈의실', ['탈의실 정리', '도복 개기']]].forEach(([room, names]) => {
       const h = document.createElement('h3');
       h.className = 'menu-room';
       h.textContent = room;
@@ -3580,13 +3622,14 @@ function boot() {
     doorPanelS.position.z = doorOpen.s + doorOpen.amount * .92;
     entryLabel.visible = player.x >= 14;
 
+    treasures.forEach((t,i)=>{if(!t.found)t.sprite.position.y=.65+(calm?0:Math.sin(clock*2+i)*.06);});
     const room = roomAt(player.x, player.z);
     if (room !== whereName) {
       whereName = room;
       $('where').textContent = ROOM_NAMES[room];
       $('photoBtn').hidden = !DOJANG.photos[room];
     }
-    const near = hotspots.find(h => h.action && Math.hypot(h.stand[0] - player.x, h.stand[1] - player.z) < 1.2) || null;
+    const near = hotspots.find(h => h.enabled !== false && h.action && Math.hypot(h.stand[0] - player.x, h.stand[1] - player.z) < 1.2) || null;
     if (near !== nearSpot) {
       nearSpot = near;
       $('action').hidden = !near;
