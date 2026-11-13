@@ -224,7 +224,7 @@ th { font-size: 13px; color: var(--ink-soft); }
       <a class="home-link" href="https://mastertkd-sandong.kr/">홈페이지</a>
     </div>
     <div class="visits" id="visits" hidden></div>
-    <small class="visits release-version">버전 2026.11.13.3</small>
+    <small class="visits release-version">버전 2026.11.13.4</small>
   </div>
 </div>
 <div class="hint" id="hint">문 쪽 바닥을 누르면 걸어 들어가요. 끌면 시점이 돌아가요.</div>
@@ -331,17 +331,20 @@ const DOJANG = {
     site: 'mastertkd-sandong', rpc: 'https://ebgoolsymyzkftvavpyj.supabase.co/rest/v1/rpc/', key: 'sb_publishable_378Ep28vw4J9Sia2OsN6-Q_gqnu5OQJ',
     colors: ['#1a1a1f', '#d6322a', '#1d4fc2', '#f0c419', '#2c8a43', '#6a3fa8'], colorNames: ['검정', '빨강', '파랑', '노랑', '초록', '보라']
   },
+  // 게임 목록과 오늘의 도전이 함께 사용하는 활동 목록.
   stamps: [
-    { id: 'mit', name: '발차기', need: 12, unit: '점' },
-    { id: 'soccer', name: '축구', need: 300, unit: '점' },
-    { id: 'basket', name: '농구', need: 300, unit: '점' },
-    { id: 'rope', name: '줄넘기', need: 16, unit: '개' },
-    { id: 'pumsae', name: '품새 퀴즈', need: 60, unit: '점' },
-    { id: 'run', name: '매트 달리기', need: 160, unit: 'm' },
-    { id: 'pads', name: '쿠션 벽 터치', need: 180, unit: '점' },
-    { id: 'cups', name: '컵 쌓기', need: 1200, unit: '점' },
-    { id: 'tidy', name: '탈의실 정리', need: 30, unit: '개' },
-    { id: 'fold', name: '도복 개기', need: 6, unit: '벌' }
+    { id: 'mit', name: '발차기', room: '1관', need: 12, unit: '점' },
+    { id: 'soccer', name: '축구', room: '1관', need: 300, unit: '점' },
+    { id: 'basket', name: '농구', room: '1관', need: 300, unit: '점' },
+    { id: 'rope', name: '줄넘기', room: '1관', need: 16, unit: '개' },
+    { id: 'pumsae', name: '품새 퀴즈', room: '1관', need: 60, unit: '점' },
+    { id: 'run', name: '매트 달리기', room: '2관', need: 160, unit: 'm' },
+    { id: 'pads', name: '쿠션 벽 터치', room: '2관', need: 180, unit: '점' },
+    { id: 'cups', name: '컵 쌓기', room: '휴게실', need: 1200, unit: '점' },
+    { id: 'cube', name: '3D 큐브', room: '휴게실', need: 1, unit: '회', goal: '큐브 1회 완성' },
+    { id: 'tidy', name: '탈의실 정리', room: '탈의실', need: 30, unit: '개' },
+    { id: 'fold', name: '도복 개기', room: '탈의실', need: 6, unit: '벌' },
+    { id: 'treasure', name: '보물찾기', room: '도장 전체', need: 5, unit: '개', goal: '보물 5개 찾기' }
   ],
   // 입구 포스터의 승급 단계
   belts: [
@@ -414,7 +417,7 @@ function recordDailyScore(id, score) {
 function stampGoal(id) {
   const s = stampOf(id);
   if (!s) return '<p>보너스 게임 · 도장 획득 조건에는 포함되지 않아요.</p>';
-  return `<p>${stampDone(s) ? '도장을 찍은 게임이에요' : `${s.need}${s.unit} 이상이면 도장을 찍어요`}</p>`;
+  return `<p>${stampDone(s) ? '도장을 찍은 게임이에요' : (s.goal ? s.goal + ' · 성공하면 도장을 찍어요' : `${s.need}${s.unit} 이상이면 도장을 찍어요`)}</p>`;
 }
 
 // 오늘 방문자를 센다. 실패해도 둘러보기에는 영향이 없고 숫자만 안 보인다
@@ -1449,9 +1452,11 @@ function boot() {
   const treasures=[];
   const treasureButton=document.createElement('button');treasureButton.addEventListener('click',()=>openTreasures());$('places').appendChild(treasureButton);
   function treasureCount(){return treasures.filter(t=>t.found).length;}
-  function openTreasures(note=''){
+  function openTreasures(note='',reward=''){
     openSheet('도장 보물찾기');const body=$('sheetBody'),intro=document.createElement('p');
     intro.textContent=note||(treasureCount()===treasures.length?'보물을 모두 찾았어요!':'투명 보물 5개를 찾아보세요. 가까이 다가가 화면을 확대하면, 배경이 살짝 휘는 입체 모양이 보여요. 발견하면 눌러주세요. 시간제한은 없어요.');body.appendChild(intro);
+    const goal=document.createElement('div');goal.innerHTML=stampGoal('treasure');body.appendChild(goal);
+    if(reward){const notice=document.createElement('div');notice.innerHTML=reward;body.appendChild(notice);}
     const count=document.createElement('p');count.className='stamp-head';count.textContent=`찾은 보물 ${treasureCount()}/${treasures.length}`;body.appendChild(count);
     treasures.forEach(t=>{const row=document.createElement('p');row.textContent=`${t.found?'✅':'⬜'} ${t.icon} ${t.name}`;body.appendChild(row);});
     const back=document.createElement('button');back.className='btn-main';back.textContent=treasureCount()===treasures.length?'도장으로 돌아가기':'찾으러 가기';back.addEventListener('click',()=>{autoCam=null;view.dist=Math.min(view.dist,18);closeSheet();});body.appendChild(back);
@@ -1462,7 +1467,8 @@ function boot() {
     t.found=true;t.sprite.visible=false;t.spot.enabled=false;
     const clicked=clickable.indexOf(t.sprite);if(clicked>=0)clickable.splice(clicked,1);
     treasureButton.textContent=`보물찾기 ${treasureCount()}/${treasures.length}`;thwack(550,.25);
-    openTreasures(treasureCount()===treasures.length?'보물 5개를 모두 찾았어요! 🎉':`${t.name} 발견!`);return true;
+    const reward=stampNews('treasure',treasureCount());
+    openTreasures(treasureCount()===treasures.length?'보물 5개를 모두 찾았어요! 🎉':`${t.name} 발견!`,reward);return true;
   }
   const treasureVisited=treasureReachable(freeCell,GRID,nearestFree(cellOf(player.x,player.z)));
   ['gwan1','gwan2','rest','office','hall'].forEach((room,index)=>{
@@ -1731,11 +1737,11 @@ function boot() {
       const seal = document.createElement('span');
       seal.className = 'stamp-seal';
       if (done) { const img = document.createElement('img'); img.src = 'assets/tex/emblem.png'; img.alt = '도장 찍음'; seal.appendChild(img); }
-      else seal.textContent = `${s.need}${s.unit}`;
+      else seal.textContent = s.goal || `${s.need}${s.unit}`;
       const name = document.createElement('b'); name.textContent = s.name;
       const best = document.createElement('small'); best.textContent = stampBest(s) ? `오늘 기록 ${stampBest(s)}${s.unit}` : '아직 기록 없음';
       b.append(seal, name, best);
-      b.addEventListener('click', () => { closeSheet(); goToHotspot(hotspots.find(x => x.name === s.name)); });
+      b.addEventListener('click', () => openActivity(s.id));
       grid.appendChild(b);
     });
     body.appendChild(grid);
@@ -2587,7 +2593,7 @@ function boot() {
     mini.running = false;
     miniCall('');
     miniCard(`<h2 id="mCardTitle">${def.title}</h2><p>${line}${isBest && best ? ' · 최고 기록이에요' : ''}</p>
-      ${stampNews(key, score)}
+      ${stampNews(key, key === 'cube' ? 1 : score)}
       <div class="row"><button class="btn-main" id="mStart">다시 하기</button><button class="btn-sub" id="mBack">도장으로 돌아가기</button></div>`);
   }
   function miniLoop(now) {
@@ -2832,7 +2838,7 @@ function boot() {
   const MINI = {
     cube: {
       dom:true, title:'3D 큐브', unit:'점', labels:['움직인 횟수','목표'], foot:'색 칸을 밀어서 한 줄씩 돌려보세요',
-      help:'실제 큐브처럼 2×2 큐브의 색 칸을 손가락으로 밀어 돌려보세요. 빈 공간을 밀면 큐브 전체를 돌려 뒤쪽도 볼 수 있어요. 5번 섞인 큐브의 여섯 면을 맞춰보세요. 보너스 게임이라 도장 조건에는 포함되지 않아요.',
+      help:'실제 큐브처럼 2×2 큐브의 색 칸을 손가락으로 밀어 돌려보세요. 빈 공간을 밀면 큐브 전체를 돌려 뒤쪽도 볼 수 있어요. 5번 섞인 큐브의 여섯 면을 맞춰보세요. 한 번 완성하면 오늘의 도장을 찍어요.',
       init() {
         const s={stickers:cubeSolvedState(),moves:0,history:[],yaw:.65,pitch:.5,dirty:true,turn:null,gesture:null,orbitOnly:false};
         do { s.stickers=cubeSolvedState(); for(let i=0,last=-1;i<5;i++) { let face;do{face=Math.floor(Math.random()*6);}while(face===last);last=face;cubeTurn(s.stickers,CUBE_FACES[face],Math.random()<.5?-1:1); } }while(cubeIsSolved(s.stickers));
@@ -3567,23 +3573,28 @@ function boot() {
       list.appendChild(b);
     });
   }
+  function openActivity(id) {
+    const activity=stampOf(id);if(!activity)return;
+    if(id==='treasure')return openTreasures();
+    const hotspot=hotspots.find(h=>h.name===activity.name);
+    if(hotspot){closeSheet();goToHotspot(hotspot);}
+  }
   function openGameMenu() {
     openSheet('게임');
-    const body = $('sheetBody');
-    const hunt=document.createElement('button');hunt.className='btn-sub';hunt.textContent='도장 보물찾기 '+treasureCount()+'/'+treasures.length;hunt.addEventListener('click',()=>openTreasures());body.appendChild(hunt);
-    [['1관', ['발차기', '축구', '농구', '줄넘기', '품새 퀴즈']], ['2관', ['매트 달리기', '쿠션 벽 터치']], ['휴게실', ['컵 쌓기', '3D 큐브', '낙서장']], ['탈의실', ['탈의실 정리', '도복 개기']]].forEach(([room, names]) => {
-      const h = document.createElement('h3');
-      h.className = 'menu-room';
-      h.textContent = room;
-      body.appendChild(h);
-      const row = document.createElement('div');
-      row.className = 'menu-row';
-      names.forEach(name => {
-        const b = document.createElement('button');
-        b.textContent = name;
-        b.addEventListener('click', () => { closeSheet(); goToHotspot(hotspots.find(x => x.name === name)); });
-        row.appendChild(b);
+    const body=$('sheetBody');
+    ['도장 전체','1관','2관','휴게실','탈의실'].forEach(room=>{
+      const activities=DOJANG.stamps.filter(s=>s.room===room);
+      if(!activities.length)return;
+      const h=document.createElement('h3');h.className='menu-room';h.textContent=room;body.appendChild(h);
+      const row=document.createElement('div');row.className='menu-row';
+      activities.forEach(activity=>{
+        const button=document.createElement('button');button.textContent=activity.name;
+        button.addEventListener('click',()=>openActivity(activity.id));row.appendChild(button);
       });
+      if(room==='휴게실'){
+        const doodle=document.createElement('button');doodle.textContent='낙서장';
+        doodle.addEventListener('click',()=>{closeSheet();goToHotspot(hotspots.find(h=>h.name==='낙서장'));});row.appendChild(doodle);
+      }
       body.appendChild(row);
     });
   }
