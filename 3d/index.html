@@ -224,7 +224,7 @@ th { font-size: 13px; color: var(--ink-soft); }
       <a class="home-link" href="https://mastertkd-sandong.kr/">홈페이지</a>
     </div>
     <div class="visits" id="visits" hidden></div>
-    <small class="visits release-version">버전 2026.11.13.2</small>
+    <small class="visits release-version">버전 2026.11.13.3</small>
   </div>
 </div>
 <div class="hint" id="hint">문 쪽 바닥을 누르면 걸어 들어가요. 끌면 시점이 돌아가요.</div>
@@ -1357,15 +1357,104 @@ function boot() {
   }
   const treasureNames=['태권도 띠','금메달','발차기 미트','태권도화','우승 트로피'];
   const treasureIcons=['🥋','🥇','🥊','👟','🏆'];
+  // Screen-space refraction: copy only a small patch around nearby treasures.
+  // The world is drawn once; the glass-only pass reuses its depth buffer.
+  const treasureGlassScene=new THREE.Scene();
+  function treasureReveal(distance,zoom,sameRoom=true,found=false) {
+    if(found||!sameRoom||distance>=3.2||zoom>=24)return 0;
+    const near=Math.max(0,Math.min(1,(3.2-distance)/1.8));
+    const closeView=Math.max(0,Math.min(1,(24-zoom)/5));
+    return near*near*(3-2*near)*closeView;
+  }
+  function treasureGlassMaterial(){
+    return new THREE.ShaderMaterial({transparent:true,depthWrite:false,depthTest:true,toneMapped:false,
+      uniforms:{uBackdrop:{value:null},uOrigin:{value:new THREE.Vector2()},uPatch:{value:new THREE.Vector2(1,1)},uStrength:{value:0}},
+      vertexShader:`varying vec3 vGlassNormal; varying vec3 vGlassView;
+        void main(){vec4 p=modelViewMatrix*vec4(position,1.0);vGlassNormal=normalize(normalMatrix*normal);vGlassView=-p.xyz;gl_Position=projectionMatrix*p;}`,
+      fragmentShader:`uniform sampler2D uBackdrop;uniform vec2 uOrigin;uniform vec2 uPatch;uniform float uStrength;
+        varying vec3 vGlassNormal;varying vec3 vGlassView;
+        void main(){
+          vec3 n=normalize(vGlassNormal);float edge=pow(1.0-abs(dot(n,normalize(vGlassView))),2.0);
+          vec2 uv=(gl_FragCoord.xy-uOrigin)/uPatch;
+          vec2 bend=n.xy*(2.0+4.0*edge)*uStrength/uPatch;
+          vec3 behind=texture2D(uBackdrop,clamp(uv+bend,vec2(0.002),vec2(0.998))).rgb;
+          gl_FragColor=vec4(mix(behind,vec3(1.0),edge*0.018*uStrength),uStrength*0.86);
+        }`
+    });
+  }
+  function makeTreasureModel(index,material){
+    const group=new THREE.Group();
+    const add=(geometry,x,y,z)=>{const mesh=new THREE.Mesh(geometry,material);mesh.position.set(x,y,z);group.add(mesh);return mesh;};
+    const block=(w,h,d,x,y,z)=>add(new THREE.BoxGeometry(w,h,d),x,y,z);
+    const tube=(top,bottom,h,x,y,z)=>add(new THREE.CylinderGeometry(top,bottom,h,12),x,y,z);
+    if(index===0){
+      const loop=add(new THREE.TorusGeometry(.16,.027,6,20),0,.32,0);loop.rotation.x=Math.PI/2;
+      block(.10,.08,.08,0,.29,.15);
+      block(.065,.22,.045,-.06,.16,.17).rotation.z=-.3;
+      block(.065,.22,.045,.06,.16,.17).rotation.z=.3;
+    }else if(index===1){
+      block(.045,.28,.025,-.065,.43,0).rotation.z=.4;
+      block(.045,.28,.025,.065,.43,0).rotation.z=-.4;
+      const medal=tube(.125,.125,.038,0,.2,.015);medal.rotation.x=Math.PI/2;
+      add(new THREE.TorusGeometry(.095,.012,6,20),0,.2,.041);
+    }else if(index===2){
+      const pad=add(new THREE.SphereGeometry(.17,16,10),0,.38,0);pad.scale.set(.7,1.25,.35);pad.rotation.z=-.18;
+      tube(.032,.038,.18,.035,.15,0).rotation.z=-.18;
+    }else if(index===3){
+      block(.34,.045,.15,0,.06,0);
+      const shoe=add(new THREE.SphereGeometry(1,16,10),0,.12,0);shoe.scale.set(.17,.095,.075);
+      block(.105,.13,.13,-.095,.17,0);
+      for(let i=0;i<3;i++)block(.018,.012,.1,-.045+i*.04,.205,0);
+    }else{
+      tube(.11,.13,.045,0,.035,0);tube(.028,.045,.21,0,.16,0);
+      tube(.17,.065,.24,0,.38,0);
+      add(new THREE.TorusGeometry(.16,.012,6,20),0,.505,0).rotation.x=Math.PI/2;
+      [-1,1].forEach(side=>add(new THREE.TorusGeometry(.085,.018,6,16),side*.165,.4,0));
+    }
+    group.rotation.y=.45;return group;
+  }
+  function updateTreasureVisibility(){
+    const room=roomAt(player.x,player.z);
+    treasures.forEach(t=>{
+      t.reveal=treasureReveal(Math.hypot(player.x-t.x,player.z-t.z),view.dist,room===t.room,t.found);
+      t.spot.enabled=t.reveal>.015;t.sprite.visible=false;
+    });
+  }
+  function drawTreasureGlass(){
+    const size=renderer.getDrawingBufferSize(new THREE.Vector2());
+    const side=Math.max(1,Math.min(512,Math.floor(size.x),Math.floor(size.y)));
+    let active=0;
+    treasures.forEach(t=>{
+      if(t.reveal<=.015||t.found)return;
+      const p=new THREE.Vector3(t.x,.32,t.z).project(camera);
+      if(p.z< -1||p.z>1||Math.abs(p.x)>1.12||Math.abs(p.y)>1.12)return;
+      if(!t.patch||t.patch.image.width!==side){
+        if(t.patch)t.patch.dispose();
+        t.patch=new THREE.DataTexture(null,side,side,THREE.RGBAFormat);
+        t.patch.minFilter=t.patch.magFilter=THREE.LinearFilter;t.patch.generateMipmaps=false;t.patch.needsUpdate=true;
+      }
+      const x=Math.max(0,Math.min(Math.floor(size.x)-side,Math.floor((p.x*.5+.5)*size.x-side/2)));
+      const y=Math.max(0,Math.min(Math.floor(size.y)-side,Math.floor((p.y*.5+.5)*size.y-side/2)));
+      renderer.copyFramebufferToTexture(new THREE.Vector2(x,y),t.patch);
+      t.material.uniforms.uBackdrop.value=t.patch;t.material.uniforms.uOrigin.value.set(x,y);
+      t.material.uniforms.uPatch.value.set(side,side);t.material.uniforms.uStrength.value=t.reveal;
+      t.sprite.visible=true;active++;
+    });
+    if(!active)return;
+    const clear=renderer.autoClear,shadows=renderer.shadowMap.autoUpdate;
+    renderer.autoClear=false;renderer.shadowMap.autoUpdate=false;
+    try{renderer.render(treasureGlassScene,camera);}finally{renderer.autoClear=clear;renderer.shadowMap.autoUpdate=shadows;}
+  }
+
   const treasures=[];
   const treasureButton=document.createElement('button');treasureButton.addEventListener('click',()=>openTreasures());$('places').appendChild(treasureButton);
   function treasureCount(){return treasures.filter(t=>t.found).length;}
   function openTreasures(note=''){
     openSheet('도장 보물찾기');const body=$('sheetBody'),intro=document.createElement('p');
-    intro.textContent=note||(treasureCount()===treasures.length?'보물을 모두 찾았어요!':'도장 안에 숨은 보물 5개를 찾아 가까이 가서 눌러보세요. 시간제한은 없어요.');body.appendChild(intro);
+    intro.textContent=note||(treasureCount()===treasures.length?'보물을 모두 찾았어요!':'투명 보물 5개를 찾아보세요. 가까이 다가가 화면을 확대하면, 배경이 살짝 휘는 입체 모양이 보여요. 발견하면 눌러주세요. 시간제한은 없어요.');body.appendChild(intro);
     const count=document.createElement('p');count.className='stamp-head';count.textContent=`찾은 보물 ${treasureCount()}/${treasures.length}`;body.appendChild(count);
     treasures.forEach(t=>{const row=document.createElement('p');row.textContent=`${t.found?'✅':'⬜'} ${t.icon} ${t.name}`;body.appendChild(row);});
-    const back=document.createElement('button');back.className='btn-main';back.textContent=treasureCount()===treasures.length?'도장으로 돌아가기':'찾으러 가기';back.addEventListener('click',closeSheet);body.appendChild(back);
+    const back=document.createElement('button');back.className='btn-main';back.textContent=treasureCount()===treasures.length?'도장으로 돌아가기':'찾으러 가기';back.addEventListener('click',()=>{autoCam=null;view.dist=Math.min(view.dist,18);closeSheet();});body.appendChild(back);
   }
   function collectTreasure(t){
     if(t.found)return false;
@@ -1385,13 +1474,10 @@ function boot() {
     const quiet=pool.filter(p=>hotspots.every(h=>Math.hypot(p.x-h.stand[0],p.z-h.stand[1])>1.6));
     const choices=quiet.length?quiet:pool;if(!choices.length)return;
     const {x,z}=choices[Math.floor(Math.random()*choices.length)];
-    const tex=canvasTex(128,128,(g,w,h)=>{
-      g.fillStyle='rgba(255,224,110,.9)';g.beginPath();g.arc(w/2,h/2,w*.43,0,Math.PI*2);g.fill();
-      g.strokeStyle='#fff6cc';g.lineWidth=5;g.stroke();g.textAlign='center';g.textBaseline='middle';g.font='62px "Segoe UI Emoji",sans-serif';g.fillText(treasureIcons[index],w/2,h/2+2);
-    });
-    const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthTest:true}));sprite.position.set(x,.65,z);sprite.scale.set(.65,.65,1);scene.add(sprite);
-    const t={name:treasureNames[index],icon:treasureIcons[index],x,z,sprite,found:false};
-    const spot={name:t.name,stand:[x,z],action:'보물 발견하기',enabled:true,open:()=>collectTreasure(t)};
+    const material=treasureGlassMaterial();
+    const sprite=makeTreasureModel(index,material);sprite.position.set(x,.025,z);sprite.visible=false;treasureGlassScene.add(sprite);
+    const t={name:treasureNames[index],icon:treasureIcons[index],x,z,room,sprite,material,reveal:0,patch:null,found:false};
+    const spot={name:t.name,stand:[x,z],enabled:false,open:()=>collectTreasure(t)};
     t.spot=spot;sprite.userData.hotspot=spot;clickable.push(sprite);hotspots.push(spot);treasures.push(t);
   });
   treasureButton.textContent=`보물찾기 0/${treasures.length}`;
@@ -1455,7 +1541,7 @@ function boot() {
     player.pending = spot || null;
     player.stall = 0;
   }
-  function goToHotspot(h) { walkTo(h.stand[0], h.stand[1], h); }
+  function goToHotspot(h) { if(h.enabled===false)return;walkTo(h.stand[0], h.stand[1], h); }
   let nearSpot = null;
   $('action').addEventListener('click', () => { if (nearSpot) nearSpot.open(); });
   $('photoBtn').addEventListener('click', () => openPhotos(roomAt(player.x, player.z)));
@@ -1516,7 +1602,7 @@ function boot() {
     for (const hit of ray.intersectObjects(clickable, true)) {
       let o = hit.object;
       while (o && !o.userData.hotspot) o = o.parent;
-      if (o) return goToHotspot(o.userData.hotspot);
+      if (o && o.userData.hotspot.enabled !== false) return goToHotspot(o.userData.hotspot);
     }
     if (!ray.ray.intersectPlane(ground, groundHit)) return;
     const gx = groundHit.x, gz = groundHit.z;
@@ -3622,7 +3708,7 @@ function boot() {
     doorPanelS.position.z = doorOpen.s + doorOpen.amount * .92;
     entryLabel.visible = player.x >= 14;
 
-    treasures.forEach((t,i)=>{if(!t.found)t.sprite.position.y=.65+(calm?0:Math.sin(clock*2+i)*.06);});
+    updateTreasureVisibility();
     const room = roomAt(player.x, player.z);
     if (room !== whereName) {
       whereName = room;
@@ -3636,6 +3722,7 @@ function boot() {
       if (near) $('action').textContent = near.action;
     }
     renderer.render(scene, camera);
+    drawTreasureGlass();
   }
   requestAnimationFrame(frame);
 }
