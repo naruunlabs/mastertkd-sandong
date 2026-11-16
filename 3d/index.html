@@ -194,6 +194,14 @@ th { font-size: 13px; color: var(--ink-soft); }
 .doodle-grid[hidden] { display: none; }
 .doodle-grid canvas { width: 100%; aspect-ratio: 1; display: block; background: #fff; border: 2px solid var(--ink); }
 .doodle-note { margin: 0; font-size: 14px; color: var(--ink-soft); }
+.doodle-card { position: relative; display: block; }
+label.doodle-card { cursor: pointer; }
+.doodle-card.on canvas { outline: 4px solid var(--hong); outline-offset: -4px; }
+.doodle-check { position: absolute; top: 6px; left: 6px; width: 24px; height: 24px; margin: 0; accent-color: var(--hong); }
+.doodle-bulk { justify-content: flex-start; }
+.doodle-bulk[hidden] { display: none; }
+.doodle-danger:not(:disabled) { background: var(--hong); border-color: var(--hong); color: #fff; }
+.doodle-tool:disabled { opacity: .5; }
 .doodle-main { display: block; width: 100%; margin-top: 10px; padding: 12px; border: 0; background: var(--hong); color: #fff; font-size: 16px; font-weight: 700; }
 .doodle-main:disabled { opacity: .5; }
 .doodle-pad { display: block; width: min(100%, 44dvh); aspect-ratio: 1; margin: 0 auto; background: #fff; border: 2px solid var(--ink); touch-action: none; }
@@ -224,7 +232,7 @@ th { font-size: 13px; color: var(--ink-soft); }
       <a class="home-link" href="https://mastertkd-sandong.kr/">홈페이지</a>
     </div>
     <div class="visits" id="visits" hidden></div>
-    <small class="visits release-version">버전 2026.11.13.5</small>
+    <small class="visits release-version">버전 2026.11.16.1</small>
   </div>
 </div>
 <div class="hint" id="hint">문 쪽 바닥을 누르면 걸어 들어가요. 끌면 시점이 돌아가요.</div>
@@ -1883,8 +1891,28 @@ function boot() {
     body.appendChild(head);
     const grid = document.createElement('div');
     grid.className = 'doodle-grid';
+    // 관리자 모드: 낙서를 체크해 여러 장을 한 번에 지운다. 서버 함수는 한 장씩 지우므로 차례로 부른다
+    const picked = new Set();
+    let deleting = false;
+    const bulk = document.createElement('div');
+    bulk.className = 'doodle-row doodle-bulk';
+    const pickAll = document.createElement('button');
+    pickAll.type = 'button'; pickAll.className = 'doodle-tool';
+    const delPicked = document.createElement('button');
+    delPicked.type = 'button'; delPicked.className = 'doodle-tool doodle-danger';
+    bulk.append(pickAll, delPicked);
+    const updateBulk = () => {
+      bulk.hidden = !doodleAdminKey || !doodleAdminItems.length;
+      const all = doodleAdminItems.length > 0 && picked.size === doodleAdminItems.length;
+      pickAll.textContent = all ? '선택 해제' : '전체 선택';
+      delPicked.textContent = `선택한 낙서 삭제 (${picked.size})`;
+      pickAll.disabled = deleting;
+      delPicked.disabled = deleting || !picked.size;
+    };
     const renderGrid = () => {
       grid.replaceChildren();
+      const ids = new Set(doodleAdminItems.map(item => item.id));
+      [...picked].forEach(id => { if (!ids.has(id)) picked.delete(id); });
       grid.hidden = !(doodleAdminKey ? doodleAdminItems : doodlePublic).length;
       (doodleAdminKey ? doodleAdminItems : doodlePublic).forEach(item => {
         const c = document.createElement('canvas');
@@ -1892,27 +1920,57 @@ function boot() {
         c.setAttribute('role', 'img');
         c.setAttribute('aria-label', '아이가 그린 낙서');
         drawDoodle(c.getContext('2d'), doodleBytes(item.data), 220);
-        const card = document.createElement('div');
+        const card = document.createElement(doodleAdminKey ? 'label' : 'div');
+        card.className = 'doodle-card';
         card.appendChild(c);
         if (doodleAdminKey) {
-          const del = document.createElement('button');
-          del.className = 'doodle-tool'; del.textContent = '이 낙서 삭제';
-          del.addEventListener('click', async () => {
-            if (!confirm('이 낙서를 삭제할까요? 삭제하면 되돌릴 수 없어요.')) return;
-            del.disabled = true;
-            try {
-              const r = await adminDoodleCall({ p_delete: item.id });
-              if (r.error) throw new Error(r.error);
-              doodleAdminItems = r.items;
-              await loadDoodles(); renderGrid();
-              head.textContent = '삭제했어요.';
-            } catch (e) { head.textContent = '삭제하지 못했어요. 다시 시도해주세요.'; del.disabled = false; }
+          const box = document.createElement('input');
+          box.type = 'checkbox'; box.className = 'doodle-check';
+          box.checked = picked.has(item.id); box.disabled = deleting;
+          box.setAttribute('aria-label', '이 낙서 선택');
+          card.classList.toggle('on', box.checked);
+          box.addEventListener('change', () => {
+            if (box.checked) picked.add(item.id); else picked.delete(item.id);
+            card.classList.toggle('on', box.checked);
+            updateBulk();
           });
-          card.appendChild(del);
+          card.appendChild(box);
         }
         grid.appendChild(card);
       });
+      updateBulk();
     };
+    pickAll.addEventListener('click', () => {
+      if (picked.size === doodleAdminItems.length) picked.clear();
+      else doodleAdminItems.forEach(item => picked.add(item.id));
+      renderGrid();
+    });
+    delPicked.addEventListener('click', async () => {
+      const ids = [...picked];
+      if (!ids.length || deleting) return;
+      if (!confirm(`선택한 낙서 ${ids.length}장을 삭제할까요? 삭제하면 되돌릴 수 없어요.`)) return;
+      deleting = true; renderGrid();
+      let done = 0;
+      try {
+        for (const id of ids) {
+          head.textContent = `삭제하는 중… ${done}/${ids.length}`;
+          const r = await adminDoodleCall({ p_delete: id });
+          if (r.error) throw new Error(r.error);
+          doodleAdminItems = r.items;
+          picked.delete(id);
+          done++;
+        }
+        head.textContent = `${done}장을 삭제했어요.`;
+      } catch (e) {
+        head.textContent = done
+          ? `${done}장은 삭제했고 ${ids.length - done}장은 삭제하지 못했어요. 다시 시도해주세요.`
+          : '삭제하지 못했어요. 다시 시도해주세요.';
+      } finally {
+        deleting = false;
+        await loadDoodles(); renderGrid();
+      }
+    });
+    body.appendChild(bulk);
     body.appendChild(grid);
     renderGrid();
     loadDoodles().then(renderGrid);
