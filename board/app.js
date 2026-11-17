@@ -90,10 +90,10 @@ $('refresh').onclick=refresh;$('account').onclick=()=>{$('accountEmail').textCon
 $('loginForm').onsubmit=async e=>{e.preventDefault();const b=$('loginButton');b.disabled=true;$('loginNotice').textContent='';try{await signInWithEmailAndPassword(auth,$('email').value.trim(),$('password').value);$('password').value='';}catch{$('loginNotice').textContent='이메일과 비밀번호를 확인해 주세요.';}finally{b.disabled=false;}};
 $('googleLogin').onclick=async()=>{const b=$('googleLogin');b.disabled=true;try{await signInWithPopup(auth,new GoogleAuthProvider());}catch{$('loginNotice').textContent='로그인 창을 열지 못했어요. 이메일과 비밀번호로 로그인해 주세요.';}finally{b.disabled=false;}};
 await setPersistence(auth,browserLocalPersistence).catch(()=>{$('loginNotice').textContent='이 브라우저에서는 로그인 상태가 유지되지 않을 수 있어요.';});
-onAuthStateChanged(auth,async user=>{
+onAuthStateChanged(auth,user=>{
   const generation=++authGeneration;store?.dispose();store=null;documents=[];activeUser=user;lastSync=null;connectionError=false;$('toast').hidden=true;for(const d of document.querySelectorAll('dialog[open]'))d.close();
   if(!user){setViews('loginView');return;}setViews('boardView');$('accountEmail').textContent=user.email||'';
-  store=new BoardStore({endpoint,getToken:force=>user.getIdToken(force),onData:docs=>{if(generation!==authGeneration)return;documents=docs;render();},onState:(s,e)=>{if(generation!==authGeneration)return;if(e?.status===403){$('loginNotice').textContent='본인의 도장 관리자 계정으로 로그인해 주세요.';signOut(auth);return;}stateChanged(s,e);}});render();await refresh();
+  store=new BoardStore({endpoint,getToken:force=>user.getIdToken(force),onData:docs=>{if(generation!==authGeneration)return;documents=docs;render();},onState:(s,e)=>{if(generation!==authGeneration)return;if(e?.status===403){$('loginNotice').textContent='본인의 도장 관리자 계정으로 로그인해 주세요.';signOut(auth);return;}stateChanged(s,e);}});render();setTimeout(()=>{if(generation===authGeneration)refresh();},0);
 });
 window.addEventListener('online',refresh);document.addEventListener('visibilitychange',()=>{if(!document.hidden){updateDate();refresh();}});setInterval(()=>{if(!document.hidden){updateDate();refresh();}},12000);
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installPrompt=e;$('installApp').hidden=false;});$('installApp').onclick=async()=>{if(!installPrompt)return;await installPrompt.prompt();installPrompt=null;$('installApp').hidden=true;};
