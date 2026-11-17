@@ -1,0 +1,25 @@
+{
+  "id": "/board/dojang/",
+  "name": "도장 · 내 기록",
+  "short_name": "도장",
+  "lang": "ko",
+  "start_url": "/board/dojang/",
+  "scope": "/board/dojang/",
+  "display": "standalone",
+  "background_color": "#f5f7fb",
+  "theme_color": "#0b9175",
+  "icons": [
+    {
+      "src": "../icons/dojang-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "../icons/dojang-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
