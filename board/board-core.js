@@ -19,7 +19,7 @@ export function friendlyError(error){
   return'연결하지 못했어요. 작성 내용은 이 기기에 보관했으니 연결 후 다시 저장해 주세요.';
 }
 export class BoardStore {
-  constructor({endpoint,getToken,onData=()=>{},onState=()=>{},fetcher=fetch}){Object.assign(this,{endpoint,getToken,onData,onState,fetcher});this.documents=new Map();this.generation=0;this.loaded=false;this.disposed=false;this.saving=0;}
+  constructor({endpoint,getToken,onData=()=>{},onState=()=>{},fetcher=(...args)=>fetch(...args)}){Object.assign(this,{endpoint,getToken,onData,onState,fetcher});this.documents=new Map();this.generation=0;this.loaded=false;this.disposed=false;this.saving=0;}
   async request(method,body,retry=true){
     const token=await this.getToken(false);const response=await this.fetcher(this.endpoint,{method,cache:'no-store',headers:{Authorization:'Bearer '+token,...(method==='POST'?{'Content-Type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{})});
     if(response.status===401&&retry){await this.getToken(true);return this.request(method,body,false);}

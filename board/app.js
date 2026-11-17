@@ -1,6 +1,6 @@
 import {initializeApp} from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import {getAuth,setPersistence,browserLocalPersistence,onAuthStateChanged,signInWithEmailAndPassword,GoogleAuthProvider,signInWithPopup,signOut} from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-import {BoardStore,seoulDate,addDays,dueInfo,recordsFor,friendlyError} from './board-core.js?v=20261117.1';
+import {BoardStore,seoulDate,addDays,dueInfo,recordsFor,friendlyError} from './board-core.js?v=20261117.2';
 
 const config={apiKey:'AIzaSyBU2sUZxyZBUYkwiqKdP7CnYkwZIsAFqUo',authDomain:'taekwondo-fb6cb.firebaseapp.com',projectId:'taekwondo-fb6cb',storageBucket:'taekwondo-fb6cb.firebasestorage.app',messagingSenderId:'341364806097',appId:'1:341364806097:web:1ffc8cab03e427ce6d10f0'};
 const auth=getAuth(initializeApp(config)),area=document.body.dataset.area,endpoint='https://ebgoolsymyzkftvavpyj.supabase.co/functions/v1/personal-board';
