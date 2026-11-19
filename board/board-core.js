@@ -32,7 +32,7 @@ export class BoardStore {
     if(this.disposed||this.saving)return;const generation=++this.generation;
     try{const result=await this.request('GET');if(generation!==this.generation||this.disposed)return;
       if(!Array.isArray(result.documents)||result.documents.some(d=>!d||!d.id||!d.data||typeof d.data!=='object'))throw Error('invalid_documents');
-      this.documents=new Map(result.documents.map(d=>[d.collection+'/'+d.id,d]));this.loaded=true;this.emit();this.onState('synced');
+      this.documents=new Map(result.documents.map(d=>[d.collection+'/'+d.id,d]));this.visits=result.visits||null;this.loaded=true;this.emit();this.onState('synced');
     }catch(error){if(generation===this.generation&&!this.disposed)this.onState('error',error);throw error;}
   }
   async write({id,collection='todos',mode='patch',data={},revision}){
